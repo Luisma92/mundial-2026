@@ -1,12 +1,10 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import type { LineupPlayer, TeamLineup, PlayerPositionGroup } from '@/lib/types';
+import type { LineupPlayer, TeamLineup } from '@/lib/types';
 
 interface MatchLineupsProps {
   lineups: [TeamLineup, TeamLineup];
 }
-
-const ROW_ORDER: PlayerPositionGroup[] = ['GK', 'DEF', 'MID', 'FWD'];
 
 export function MatchLineups({ lineups }: MatchLineupsProps) {
   if (!lineups[0] || !lineups[1]) return null;
@@ -51,8 +49,6 @@ interface FullPitchProps {
 }
 
 function FullPitch({ home, away }: FullPitchProps) {
-  const homeRows = groupByRow(home.players.filter((p) => p.starter));
-  const awayRows = groupByRow(away.players.filter((p) => p.starter));
   const homeSubs = home.players.filter((p) => !p.starter);
   const awaySubs = away.players.filter((p) => !p.starter);
 
@@ -61,38 +57,11 @@ function FullPitch({ home, away }: FullPitchProps) {
       <div className="relative w-full bg-pitch-900" style={{ aspectRatio: '5/7' }}>
         <PitchMarkings />
 
-        {/* Top half: away team — GK at top, FWD at center line */}
-        <div className="absolute top-0 left-0 right-0 h-1/2 flex flex-col justify-between py-[8%]">
-          {(['GK', 'DEF', 'MID', 'FWD'] as const).map((row) => (
-            <PlayerRow
-              key={`away-${row}`}
-              row={row}
-              players={awayRows[row]}
-              teamColor={away.team.color}
-              teamColor2={away.uniform?.alternateColor ? `#${away.uniform.alternateColor}` : undefined}
-            />
-          ))}
-        </div>
+        {/* Top half (0–50% of pitch): away team — GK at top, FWD at center */}
+        <HalfOfPitch lineup={away} orientation="top" />
 
-        {/* Bottom half: home team — FWD at center line, GK at own goal */}
-        <div className="absolute bottom-0 left-0 right-0 h-1/2 flex flex-col justify-between py-[8%]">
-          {(['FWD', 'MID', 'DEF', 'GK'] as const).map((row) => (
-            <PlayerRow
-              key={`home-${row}`}
-              row={row}
-              players={homeRows[row]}
-              teamColor={home.team.color}
-              teamColor2={home.uniform?.alternateColor ? `#${home.uniform.alternateColor}` : undefined}
-            />
-          ))}
-        </div>
-
-        {/* Center line label to visually separate the two halves */}
-        <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 pointer-events-none flex justify-center">
-          <div className="px-2 py-0.5 rounded-full bg-night-900/70 backdrop-blur-sm text-[9px] uppercase tracking-widest text-night-400 ring-1 ring-white/10">
-            centro del campo
-          </div>
-        </div>
+        {/* Bottom half (50–100% of pitch): home team — FWD at center, GK at bottom */}
+        <HalfOfPitch lineup={home} orientation="bottom" />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 border-t border-white/5">
@@ -103,38 +72,112 @@ function FullPitch({ home, away }: FullPitchProps) {
   );
 }
 
-interface PlayerRowProps {
-  row: PlayerPositionGroup;
-  players: LineupPlayer[];
-  teamColor: string;
-  teamColor2?: string;
+interface HalfOfPitchProps {
+  lineup: TeamLineup;
+  orientation: 'top' | 'bottom';
 }
 
-function PlayerRow({ row, players, teamColor, teamColor2 }: PlayerRowProps) {
-  if (players.length === 0) return <div className="h-12" />;
+function HalfOfPitch({ lineup, orientation }: HalfOfPitchProps) {
+  const layout = buildLayout(lineup);
+  if (layout.length === 0) return null;
+
+  // Y positions within the half (0 = own edge, 100 = center line).
+  // For top half: row 0 = GK (top, own goal), row N-1 = FWD (near center).
+  // For bottom half: same row order, but Y is mirrored so GK ends at bottom.
+  const rows = orientation === 'top' ? layout : [...layout].reverse();
+
+  const N = rows.length;
+  const positions = Array.from({ length: N }, (_, i) =>
+    N === 1 ? 50 : 8 + (i / (N - 1)) * 84,
+  );
+
   return (
-    <div className="flex justify-around items-center px-[6%] pointer-events-auto">
-      {players.map((player) => (
-        <PlayerMarker
-          key={player.id}
-          player={player}
-          teamColor={teamColor}
-          teamColor2={teamColor2}
-          row={row}
-        />
+    <div
+      className="absolute left-0 right-0 pointer-events-none"
+      style={{
+        top: orientation === 'top' ? '0%' : '50%',
+        bottom: orientation === 'top' ? '50%' : '0%',
+      }}
+    >
+      {rows.map((row, idx) => (
+        <div
+          key={row.type}
+          className="absolute left-0 right-0 flex justify-around items-center px-[5%]"
+          style={{ top: `${positions[idx]}%`, transform: 'translateY(-50%)' }}
+        >
+          {row.players.map((p) => (
+            <PlayerMarker key={p.id} player={p} teamColor={lineup.team.color} />
+          ))}
+        </div>
       ))}
     </div>
   );
 }
 
+type LayoutRow = {
+  type: 'GK' | 'DEF' | 'DM' | 'MID' | 'AM' | 'FWD';
+  players: LineupPlayer[];
+};
+
+function buildLayout(lineup: TeamLineup): LayoutRow[] {
+  const starters = lineup.players.filter((p) => p.starter);
+  const gks = starters.filter((p) => p.position.group === 'GK').sort(byFormationPlace);
+  const defs = starters.filter((p) => p.position.group === 'DEF').sort(byFormationPlace);
+  const fwds = starters.filter((p) => p.position.group === 'FWD').sort(byFormationPlace);
+  const mids = starters.filter((p) => p.position.group === 'MID').sort(byFormationPlace);
+
+  const formation = lineup.formation || '';
+  const splitMid = formation === '4-2-3-1' || formation === '4-1-4-1';
+
+  const amTypes = new Set(['AM', 'AM-R', 'AM-L', 'CAM', 'RAM', 'LAM']);
+  let dmPlayers: LineupPlayer[] = [];
+  let midPlayers: LineupPlayer[] = [];
+
+  if (splitMid) {
+    dmPlayers = mids.filter((p) => !amTypes.has(p.position.abbreviation));
+    const amPlayers = mids.filter((p) => amTypes.has(p.position.abbreviation));
+    if (formation === '4-2-3-1') {
+      // Need exactly 2 DM, 3 AM. If classification is off, fallback to order split.
+      const target = 2;
+      if (dmPlayers.length !== target) {
+        dmPlayers = mids.slice(0, target);
+        midPlayers = [];
+      } else {
+        midPlayers = amPlayers;
+      }
+    } else {
+      // 4-1-4-1: 1 DM + 4 MID. DM is the lone defensive mid.
+      if (dmPlayers.length === 1) {
+        midPlayers = amPlayers;
+      } else {
+        dmPlayers = mids.slice(0, 1);
+        midPlayers = mids.slice(1);
+      }
+    }
+  } else {
+    midPlayers = mids;
+  }
+
+  const layout: LayoutRow[] = [];
+  if (gks.length > 0) layout.push({ type: 'GK', players: gks });
+  if (defs.length > 0) layout.push({ type: 'DEF', players: defs });
+  if (dmPlayers.length > 0) layout.push({ type: 'DM', players: dmPlayers });
+  if (midPlayers.length > 0) layout.push({ type: 'MID', players: midPlayers });
+  if (fwds.length > 0) layout.push({ type: 'FWD', players: fwds });
+
+  return layout;
+}
+
+function byFormationPlace(a: LineupPlayer, b: LineupPlayer): number {
+  return a.formationPlace - b.formationPlace;
+}
+
 interface PlayerMarkerProps {
   player: LineupPlayer;
   teamColor: string;
-  teamColor2?: string;
-  row: PlayerPositionGroup;
 }
 
-function PlayerMarker({ player, teamColor, teamColor2, row }: PlayerMarkerProps) {
+function PlayerMarker({ player, teamColor }: PlayerMarkerProps) {
   const [imgFailed, setImgFailed] = useState(false);
   const [jerseyFailed, setJerseyFailed] = useState(false);
   const useJersey = player.jerseyImageUrl && !jerseyFailed;
@@ -142,10 +185,10 @@ function PlayerMarker({ player, teamColor, teamColor2, row }: PlayerMarkerProps)
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.5, y: row === 'GK' ? 0 : 6 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 280, damping: 22, delay: player.formationPlace * 0.03 }}
-      className="flex flex-col items-center gap-1 group"
+      initial={{ opacity: 0, scale: 0.5 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 280, damping: 22, delay: player.formationPlace * 0.025 }}
+      className="flex flex-col items-center gap-1 group pointer-events-auto"
     >
       <div className="relative">
         {useJersey ? (
@@ -153,7 +196,7 @@ function PlayerMarker({ player, teamColor, teamColor2, row }: PlayerMarkerProps)
             src={player.jerseyImageUrl}
             alt={player.name}
             loading="lazy"
-            className="w-11 h-11 sm:w-14 sm:h-14 object-contain drop-shadow-lg"
+            className="w-10 h-10 sm:w-12 sm:h-12 object-contain drop-shadow-lg"
             onError={() => setJerseyFailed(true)}
           />
         ) : usePhoto ? (
@@ -161,14 +204,14 @@ function PlayerMarker({ player, teamColor, teamColor2, row }: PlayerMarkerProps)
             src={player.headshotUrl}
             alt={player.name}
             loading="lazy"
-            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover ring-2 ring-white/50 bg-night-800"
+            className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-cover ring-2 ring-white/50 bg-night-800"
             onError={() => setImgFailed(true)}
           />
         ) : (
           <div
-            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full ring-2 ring-white/40 flex items-center justify-center font-display font-black text-sm text-white drop-shadow-md"
+            className="w-9 h-9 sm:w-11 sm:h-11 rounded-full ring-2 ring-white/40 flex items-center justify-center font-display font-black text-sm text-white drop-shadow-md"
             style={{
-              background: `linear-gradient(135deg, ${teamColor} 0%, ${teamColor2 ?? darken(teamColor, 30)} 100%)`,
+              background: `linear-gradient(135deg, ${teamColor} 0%, ${darken(teamColor, 30)} 100%)`,
             }}
           >
             {player.shortName
@@ -186,7 +229,7 @@ function PlayerMarker({ player, teamColor, teamColor2, row }: PlayerMarkerProps)
           {player.jersey}
         </div>
       </div>
-      <div className="hidden sm:block px-1.5 py-0.5 rounded bg-night-900/85 backdrop-blur-sm ring-1 ring-white/10 max-w-[90px] text-center">
+      <div className="hidden sm:block px-1.5 py-0.5 rounded bg-night-900/85 backdrop-blur-sm ring-1 ring-white/10 max-w-[88px] text-center">
         <div className="text-[10px] font-bold text-white leading-tight truncate">
           {player.shortName.split(' ').pop() || player.shortName}
         </div>
@@ -202,39 +245,20 @@ function PitchMarkings() {
       preserveAspectRatio="none"
       className="absolute inset-0 w-full h-full pointer-events-none"
     >
-      {/* Outer pitch */}
       <rect x="2" y="2" width="96" height="136" stroke="rgba(255,255,255,0.3)" strokeWidth="0.4" fill="none" />
-      {/* Center line */}
       <line x1="2" y1="70" x2="98" y2="70" stroke="rgba(255,255,255,0.3)" strokeWidth="0.4" />
-      {/* Center circle */}
       <circle cx="50" cy="70" r="9" stroke="rgba(255,255,255,0.25)" strokeWidth="0.4" fill="none" />
-      {/* Penalty box top */}
       <rect x="22" y="2" width="56" height="16" stroke="rgba(255,255,255,0.3)" strokeWidth="0.4" fill="none" />
-      {/* Goal area top */}
       <rect x="35" y="2" width="30" height="7" stroke="rgba(255,255,255,0.3)" strokeWidth="0.4" fill="none" />
-      {/* Penalty box bottom */}
       <rect x="22" y="122" width="56" height="16" stroke="rgba(255,255,255,0.3)" strokeWidth="0.4" fill="none" />
-      {/* Goal area bottom */}
       <rect x="35" y="131" width="30" height="7" stroke="rgba(255,255,255,0.3)" strokeWidth="0.4" fill="none" />
-      {/* Penalty spots */}
       <circle cx="50" cy="11" r="0.8" fill="rgba(255,255,255,0.5)" />
       <circle cx="50" cy="129" r="0.8" fill="rgba(255,255,255,0.5)" />
-      {/* Center spot */}
       <circle cx="50" cy="70" r="0.8" fill="rgba(255,255,255,0.5)" />
-      {/* Penalty arcs */}
       <path d="M 42 18 Q 50 24 58 18" stroke="rgba(255,255,255,0.25)" strokeWidth="0.4" fill="none" />
       <path d="M 42 122 Q 50 116 58 122" stroke="rgba(255,255,255,0.25)" strokeWidth="0.4" fill="none" />
     </svg>
   );
-}
-
-function groupByRow(players: LineupPlayer[]): Record<PlayerPositionGroup, LineupPlayer[]> {
-  const rows: Record<PlayerPositionGroup, LineupPlayer[]> = { GK: [], DEF: [], MID: [], FWD: [] };
-  for (const p of players) rows[p.position.group].push(p);
-  for (const k of ROW_ORDER) {
-    rows[k].sort((a, b) => a.formationPlace - b.formationPlace);
-  }
-  return rows;
 }
 
 interface SubsSectionProps {
