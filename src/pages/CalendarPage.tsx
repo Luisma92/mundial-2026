@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Filter } from 'lucide-react';
+import { Calendar, Filter, Star } from 'lucide-react';
 import { useMatches } from '@/hooks/useWorldCup';
 import { MatchCard } from '@/components/matches/MatchCard';
 import { Spinner } from '@/components/ui/Spinner';
@@ -8,6 +8,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { TOURNAMENT } from '@/lib/constants';
 import type { Match } from '@/lib/types';
 import { clsx } from 'clsx';
+import { useFavorites } from '@/lib/favorites';
 
 type FilterStatus = 'all' | 'scheduled' | 'in_progress' | 'final';
 
@@ -15,17 +16,27 @@ export function CalendarPage() {
   const { data, isLoading, isError, error, refetch } = useMatches();
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
   const [groupFilter, setGroupFilter] = useState<string>('all');
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const { isFavorite, count: favCount } = useFavorites();
 
   const groups = TOURNAMENT.groupLetters;
 
   const filtered = useMemo<Match[]>(() => {
     if (!data) return [];
-    return data.filter((m) => {
-      if (statusFilter !== 'all' && m.status !== statusFilter) return false;
-      if (groupFilter !== 'all' && m.group !== `Grupo ${groupFilter}`) return false;
-      return true;
-    });
-  }, [data, statusFilter, groupFilter]);
+    return data
+      .filter((m) => {
+        if (statusFilter !== 'all' && m.status !== statusFilter) return false;
+        if (groupFilter !== 'all' && m.group !== `Grupo ${groupFilter}`) return false;
+        if (favoritesOnly && !isFavorite(m.home.team.abbreviation) && !isFavorite(m.away.team.abbreviation)) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const aFav = isFavorite(a.home.team.abbreviation) || isFavorite(a.away.team.abbreviation);
+        const bFav = isFavorite(b.home.team.abbreviation) || isFavorite(b.away.team.abbreviation);
+        if (aFav !== bFav) return aFav ? -1 : 1;
+        return a.startTimestamp - b.startTimestamp;
+      });
+  }, [data, statusFilter, groupFilter, favoritesOnly, isFavorite]);
 
   const byDate = useMemo(() => {
     const map = new Map<string, Match[]>();
@@ -87,6 +98,21 @@ export function CalendarPage() {
               {letter}
             </FilterPill>
           ))}
+          <button
+            onClick={() => setFavoritesOnly((v) => !v)}
+            disabled={favCount === 0}
+            className={clsx(
+              'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-all focus-ring ml-2',
+              favCount === 0
+                ? 'bg-white/[0.02] text-night-500 cursor-not-allowed'
+                : favoritesOnly
+                  ? 'bg-pitch-500 text-white shadow-lg shadow-pitch-500/20'
+                  : 'bg-white/[0.04] text-night-300 hover:bg-white/[0.08] hover:text-white border border-white/5',
+            )}
+          >
+            <Star className={clsx('w-3 h-3', favoritesOnly && 'fill-current')} />
+            Mis favoritas {favCount > 0 && <span className="opacity-80">({favCount})</span>}
+          </button>
         </div>
       </header>
 

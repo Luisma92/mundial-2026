@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import { useN8nFavoritesSync } from '@/lib/n8nSync';
 
 const HomePage = lazy(() => import('@/pages/HomePage').then((m) => ({ default: m.HomePage })));
 const GroupsPage = lazy(() => import('@/pages/GroupsPage').then((m) => ({ default: m.GroupsPage })));
@@ -32,6 +33,7 @@ function NotFound() {
 }
 
 export default function App() {
+  useN8nFavoritesSync();
   return (
     <div className="min-h-screen flex flex-col">
       <Header />

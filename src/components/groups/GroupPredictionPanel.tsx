@@ -5,6 +5,7 @@ import { clsx } from 'clsx';
 import type { Group } from '@/lib/types';
 import { TeamFlag } from '@/components/teams/TeamFlag';
 import { loadPredictions, setGroupPrediction, clearGroupPrediction } from '@/lib/predictions';
+import { useFavorites } from '@/lib/favorites';
 
 interface GroupPredictionPanelProps {
   group: Group;
@@ -82,6 +83,7 @@ interface PositionPickerProps {
 
 function PositionPicker({ label, color, selected, actual, teams, onPick }: PositionPickerProps) {
   const [open, setOpen] = useState(false);
+  const { isFavorite } = useFavorites();
   const selectedTeam = teams.find((t) => t.abbreviation.toUpperCase() === selected?.toUpperCase());
   const isCorrect = selected && actual && selected.toUpperCase() === actual.toUpperCase();
   const hasActual = !!actual;
@@ -150,7 +152,7 @@ function PositionPicker({ label, color, selected, actual, teams, onPick }: Posit
                 >
                   <TeamFlag team={t} size="xs" />
                   <span className="flex-1 truncate">{t.shortName}</span>
-                  {t.isFavorite && <span className="text-[10px] text-pitch-300">★</span>}
+                  {isFavorite(t.abbreviation) && <span className="text-[10px] text-pitch-300">★</span>}
                 </button>
               ))}
             </div>

@@ -7,6 +7,7 @@ import { TeamFlag } from '@/components/teams/TeamFlag';
 import { LiveBadge } from './LiveBadge';
 import { ScoreDisplay } from './ScoreDisplay';
 import { formatMatchTime, isMatchToday, formatMatchDate } from '@/lib/format';
+import { useFavorites } from '@/lib/favorites';
 
 interface MatchCardProps {
   match: Match;
@@ -15,6 +16,9 @@ interface MatchCardProps {
 }
 
 export function MatchCard({ match, variant = 'default', showDate = true }: MatchCardProps) {
+  const { isFavorite } = useFavorites();
+  const homeFav = isFavorite(match.home.team.abbreviation);
+  const awayFav = isFavorite(match.away.team.abbreviation);
   const isLive = match.status === 'in_progress' || match.status === 'halftime';
   const isFinished = match.status === 'final';
   const hasScore = isLive || isFinished;
@@ -105,7 +109,7 @@ export function MatchCard({ match, variant = 'default', showDate = true }: Match
         </div>
 
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-          <TeamSide team={match.home.team} score={match.score?.home} winner={isFinished && match.winner === 'home'} isLive={isLive} align="right" featured={isFeatured} />
+          <TeamSide team={match.home.team} score={match.score?.home} winner={isFinished && match.winner === 'home'} isLive={isLive} align="right" featured={isFeatured} isFav={homeFav} />
           <div className="text-center min-w-[60px]">
             {hasScore && match.score ? (
               <ScoreDisplay home={match.score.home} away={match.score.away} size={isFeatured ? 'lg' : 'md'} highlight={isLive} />
@@ -120,7 +124,7 @@ export function MatchCard({ match, variant = 'default', showDate = true }: Match
               </div>
             )}
           </div>
-          <TeamSide team={match.away.team} score={match.score?.away} winner={isFinished && match.winner === 'away'} isLive={isLive} align="left" featured={isFeatured} />
+          <TeamSide team={match.away.team} score={match.score?.away} winner={isFinished && match.winner === 'away'} isLive={isLive} align="left" featured={isFeatured} isFav={awayFav} />
         </div>
 
         {(match.venue || match.broadcasters.length > 0) && (
@@ -151,12 +155,13 @@ interface TeamSideProps {
   isLive: boolean;
   align: 'left' | 'right';
   featured: boolean;
+  isFav: boolean;
 }
 
-function TeamSide({ team, score, winner, align, featured }: TeamSideProps) {
+function TeamSide({ team, score, winner, align, featured, isFav }: TeamSideProps) {
   return (
     <div className={clsx('flex items-center gap-3', align === 'right' ? 'flex-row-reverse text-right' : 'flex-row text-left')}>
-      <TeamFlag team={team} size={featured ? 'xl' : 'lg'} showRing={winner || team.isFavorite} ringColor={winner ? '#22c55e' : team.color} />
+      <TeamFlag team={team} size={featured ? 'xl' : 'lg'} showRing={winner || isFav} ringColor={winner ? '#22c55e' : team.color} />
       <div className={clsx('min-w-0', align === 'right' ? 'items-end' : 'items-start', 'flex flex-col')}>
         <span className={clsx('font-bold text-white truncate max-w-[140px]', featured ? 'text-base' : 'text-sm')}>
           {team.shortName}

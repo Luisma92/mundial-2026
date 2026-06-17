@@ -67,8 +67,6 @@ const TEAM_REGISTRY: Record<string, Partial<Team> & { code: string; color: strin
   AUS2: { code: 'au', color: '#00843d', name: 'Australia', shortName: 'Australia' },
 };
 
-const FAVORITES = new Set(['ARG', 'ESP']);
-
 export function buildTeamFromAbbr(abbr: string, id: string, name?: string): Team {
   const key = abbr.toUpperCase();
   const meta = TEAM_REGISTRY[key] ?? { code: 'xx', color: '#888', name: name ?? abbr };
@@ -81,15 +79,9 @@ export function buildTeamFromAbbr(abbr: string, id: string, name?: string): Team
     countryCode: code,
     flagUrl: `https://flagcdn.com/w160/${code}.png`,
     color: meta.color,
-    isFavorite: FAVORITES.has(key),
   };
 }
 
 export function getFlagUrl(countryCode: string, size: 'w20' | 'w40' | 'w80' | 'w160' | 'w320' | 'w640' = 'w160'): string {
   return `https://flagcdn.com/${size}/${countryCode.toLowerCase()}.png`;
-}
-
-export function isFavoriteTeam(team: Team | null | undefined): boolean {
-  if (!team) return false;
-  return FAVORITES.has(team.abbreviation.toUpperCase()) || team.isFavorite === true;
 }

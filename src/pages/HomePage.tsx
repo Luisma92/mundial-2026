@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { motion } from 'framer-motion';
-import { ChevronRight, MapPin, Calendar as CalendarIcon, Trophy } from 'lucide-react';
+import { ChevronRight, MapPin, Calendar as CalendarIcon, Trophy, Star } from 'lucide-react';
+import { clsx } from 'clsx';
 import { useLiveMatches, useTodayMatches, useMatches } from '@/hooks/useWorldCup';
 import { MatchCard } from '@/components/matches/MatchCard';
 import { Spinner } from '@/components/ui/Spinner';
@@ -8,41 +9,54 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { TeamFlag } from '@/components/teams/TeamFlag';
 import { buildTeamFromAbbr } from '@/lib/teams';
 import { TOURNAMENT } from '@/lib/constants';
-
-const FAVORITE_TEAMS = [
-  {
-    team: buildTeamFromAbbr('ESP', 'esp', 'España'),
-    tagline: 'La Roja',
-    description: 'Campeona de Europa. Busca revancha después de quedar fuera en Qatar 2022.',
-    bgGradient: 'gradient-spain',
-    textClass: 'text-spain-gold',
-    ringColor: '#c1121f',
-  },
-  {
-    team: buildTeamFromAbbr('ARG', 'arg', 'Argentina'),
-    tagline: 'La Albiceleste',
-    description: 'Campeona del Mundo. Va por el bicampeonato con Messi en su último mundial.',
-    bgGradient: 'gradient-argentina',
-    textClass: 'text-argentina-300',
-    ringColor: '#75aadb',
-  },
-];
+import { useFavorites } from '@/lib/favorites';
 
 export function HomePage() {
   const liveQ = useLiveMatches();
   const todayQ = useTodayMatches();
   const allQ = useMatches();
+  const { favoriteList, isFavorite, count: favCount } = useFavorites();
 
   const liveMatches = liveQ.data ?? [];
   const todayMatches = todayQ.data ?? [];
   const allMatches = allQ.data ?? [];
+  const favMatches = allMatches.filter((m) => isFavorite(m.home.team.abbreviation) || isFavorite(m.away.team.abbreviation));
   const upcoming = allMatches.filter((m) => m.status === 'scheduled').slice(0, 6);
 
   return (
     <div className="space-y-12">
       <Hero />
 
-      <FavoriteTeamsSection />
+      {favCount === 0 ? (
+        <FavoritesEmptyState />
+      ) : (
+        <FavoriteTeamsSection favorites={favoriteList} />
+      )}
+
+      {favCount > 0 && favMatches.length > 0 && (
+        <section className="space-y-4">
+          <SectionHeader
+            title="Partidos de tus selecciones"
+            subtitle={`${favMatches.length} partidos en todo el torneo`}
+            link={{ to: '/calendario', label: 'Filtrar por favoritas' }}
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {favMatches
+              .filter((m) => m.status === 'in_progress' || m.status === 'scheduled' || (m.status === 'final' && Date.now() - m.startTimestamp < 1000 * 60 * 60 * 24 * 3))
+              .slice(0, 6)
+              .map((match, idx) => (
+                <motion.div
+                  key={match.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.03 }}
+                >
+                  <MatchCard match={match} />
+                </motion.div>
+              ))}
+          </div>
+        </section>
+      )}
 
       {liveQ.isLoading ? (
         <SectionSkeleton title="EN VIVO" icon={Trophy} />
@@ -201,31 +215,43 @@ function Hero() {
   );
 }
 
-function FavoriteTeamsSection() {
+function FavoriteTeamsSection({ favorites }: { favorites: readonly string[] }) {
+  const teams = favorites.map((abbr) => buildTeamFromAbbr(abbr, `fav-${abbr}`));
   return (
     <section className="space-y-4">
-      <SectionHeader title="Mis selecciones" subtitle="España y Argentina" accent />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {FAVORITE_TEAMS.map((fav, idx) => (
+      <SectionHeader
+        title="Mis selecciones"
+        subtitle={`${teams.length} ${teams.length === 1 ? 'favorita' : 'favoritas'} seguidas`}
+        accent
+        link={{ to: '/equipos', label: 'Editar favoritas' }}
+      />
+      <div className={clsx(
+        'grid gap-4',
+        teams.length === 1 ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2',
+        teams.length >= 3 ? 'lg:grid-cols-3' : '',
+      )}>
+        {teams.map((team, idx) => (
           <motion.div
-            key={fav.team.id}
+            key={team.id}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1 + idx * 0.1 }}
+            transition={{ delay: 0.1 + idx * 0.05 }}
           >
             <Link
-              to={`/equipos/${fav.team.abbreviation.toLowerCase()}`}
-              className="block relative overflow-hidden rounded-2xl border border-white/5 hover:border-white/20 transition-colors group focus-ring"
+              to={`/equipos/${team.abbreviation.toLowerCase()}`}
+              className="block relative overflow-hidden rounded-2xl border border-pitch-500/30 hover:border-pitch-500/60 transition-colors group focus-ring glass-strong"
             >
-              <div className={fav.bgGradient + ' absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity'} />
+              <div className="absolute inset-0 bg-gradient-to-br from-pitch-500/15 via-transparent to-transparent opacity-70 group-hover:opacity-100 transition-opacity" />
               <div className="relative p-6 sm:p-8 flex items-center gap-6">
-                <TeamFlag team={fav.team} size="2xl" showRing ringColor={fav.ringColor} />
+                <TeamFlag team={team} size="2xl" showRing ringColor={team.color} />
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10px] uppercase tracking-widest text-night-300 mb-1">{fav.tagline}</div>
+                  <div className="text-[10px] uppercase tracking-widest text-pitch-300 mb-1 inline-flex items-center gap-1.5">
+                    <Star className="w-3 h-3 fill-current" />
+                    Tu favorita
+                  </div>
                   <h2 className="font-display font-black text-3xl sm:text-4xl text-white leading-none">
-                    {fav.team.name}
+                    {team.name}
                   </h2>
-                  <p className="mt-2 text-sm text-night-300 max-w-md">{fav.description}</p>
                 </div>
                 <ChevronRight className="w-6 h-6 text-white/40 group-hover:text-white group-hover:translate-x-1 transition-all" />
               </div>
@@ -234,6 +260,34 @@ function FavoriteTeamsSection() {
         ))}
       </div>
     </section>
+  );
+}
+
+function FavoritesEmptyState() {
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-3xl glass-strong p-8 sm:p-10 relative overflow-hidden"
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-pitch-500/8 via-transparent to-argentina-500/8 pointer-events-none" />
+      <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-6">
+        <div className="w-16 h-16 rounded-2xl bg-pitch-500/20 flex items-center justify-center shrink-0">
+          <Star className="w-8 h-8 text-pitch-300" />
+        </div>
+        <div className="flex-1">
+          <h2 className="text-2xl font-display font-black text-white">Personalizá tu Mundial</h2>
+          <p className="text-sm text-night-300 mt-1 max-w-2xl">
+            Elegí las selecciones que querés seguir y te resaltamos sus partidos, te filtramos el calendario, los
+            destacamos en los grupos y los goleadores, y te mandamos push cuando juegan.
+          </p>
+        </div>
+        <Link to="/equipos" className="btn btn-primary px-5 py-2.5 shrink-0">
+          <Star className="w-4 h-4" />
+          Elegir favoritas
+        </Link>
+      </div>
+    </motion.section>
   );
 }
 

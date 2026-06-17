@@ -4,12 +4,14 @@ import { ChevronRight } from 'lucide-react';
 import { clsx } from 'clsx';
 import type { Group } from '@/lib/types';
 import { TeamFlag } from '@/components/teams/TeamFlag';
+import { useFavorites } from '@/lib/favorites';
 
 interface GroupTableProps {
   group: Group;
 }
 
 export function GroupTable({ group }: GroupTableProps) {
+  const { isFavorite } = useFavorites();
   return (
     <div className="rounded-2xl glass overflow-hidden">
       <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-pitch-900/40 to-transparent">
@@ -41,68 +43,72 @@ export function GroupTable({ group }: GroupTableProps) {
             </tr>
           </thead>
           <tbody>
-            {group.standings.map((standing, idx) => (
-              <motion.tr
-                key={standing.team.id}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.04 }}
-                className={clsx(
-                  'border-b border-white/5 last:border-0 hover:bg-white/[0.03] transition-colors group',
-                  standing.position <= 2 && 'bg-pitch-900/10',
-                  standing.position === 3 && 'bg-spain-900/10',
-                  standing.position === 4 && 'bg-argentina-900/10',
-                )}
-              >
-                <td className="px-3 py-2.5">
-                  <span
-                    className={clsx(
-                      'inline-flex items-center justify-center w-6 h-6 rounded-md text-xs font-bold',
-                      standing.position <= 2
-                        ? 'bg-pitch-500/20 text-pitch-300'
-                        : 'bg-white/5 text-night-300',
-                    )}
-                  >
-                    {standing.position}
-                  </span>
-                </td>
-                <td className="px-2 py-2.5">
-                  <Link
-                    to={`/equipos/${standing.team.abbreviation.toLowerCase()}`}
-                    className="flex items-center gap-2.5 min-w-0 focus-ring rounded-md"
-                  >
-                    <TeamFlag
-                      team={standing.team}
-                      size="sm"
-                      showRing={standing.team.isFavorite}
-                      ringColor={standing.team.color}
-                    />
-                    <span className="font-medium text-white truncate">{standing.team.shortName}</span>
-                    {standing.team.isFavorite && (
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-pitch-300 bg-pitch-500/10 rounded px-1.5 py-0.5">
-                        ★
-                      </span>
-                    )}
-                  </Link>
-                </td>
-                <td className="px-2 py-2.5 text-center font-mono text-night-200">{standing.played}</td>
-                <td className="px-2 py-2.5 text-center font-mono text-night-200">{standing.won}</td>
-                <td className="px-2 py-2.5 text-center font-mono text-night-200">{standing.drawn}</td>
-                <td className="px-2 py-2.5 text-center font-mono text-night-200">{standing.lost}</td>
-                <td className="px-2 py-2.5 text-center font-mono text-night-200">{standing.goalsFor}</td>
-                <td className="px-2 py-2.5 text-center font-mono text-night-200">{standing.goalsAgainst}</td>
-                <td
+            {group.standings.map((standing, idx) => {
+              const fav = isFavorite(standing.team.abbreviation);
+              return (
+                <motion.tr
+                  key={standing.team.id}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.04 }}
                   className={clsx(
-                    'px-2 py-2.5 text-center font-mono font-semibold',
-                    standing.goalDifference > 0 ? 'text-pitch-300' : standing.goalDifference < 0 ? 'text-red-400' : 'text-night-300',
+                    'border-b border-white/5 last:border-0 hover:bg-white/[0.03] transition-colors group',
+                    standing.position <= 2 && 'bg-pitch-900/10',
+                    standing.position === 3 && 'bg-spain-900/10',
+                    standing.position === 4 && 'bg-argentina-900/10',
+                    fav && 'bg-pitch-900/15 ring-1 ring-inset ring-pitch-500/30',
                   )}
                 >
-                  {standing.goalDifference > 0 ? '+' : ''}
-                  {standing.goalDifference}
-                </td>
-                <td className="px-3 py-2.5 text-center font-mono font-black text-pitch-300">{standing.points}</td>
-              </motion.tr>
-            ))}
+                  <td className="px-3 py-2.5">
+                    <span
+                      className={clsx(
+                        'inline-flex items-center justify-center w-6 h-6 rounded-md text-xs font-bold',
+                        standing.position <= 2
+                          ? 'bg-pitch-500/20 text-pitch-300'
+                          : 'bg-white/5 text-night-300',
+                      )}
+                    >
+                      {standing.position}
+                    </span>
+                  </td>
+                  <td className="px-2 py-2.5">
+                    <Link
+                      to={`/equipos/${standing.team.abbreviation.toLowerCase()}`}
+                      className="flex items-center gap-2.5 min-w-0 focus-ring rounded-md"
+                    >
+                      <TeamFlag
+                        team={standing.team}
+                        size="sm"
+                        showRing={fav}
+                        ringColor={standing.team.color}
+                      />
+                      <span className="font-medium text-white truncate">{standing.team.shortName}</span>
+                      {fav && (
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-pitch-300 bg-pitch-500/10 rounded px-1.5 py-0.5">
+                          ★
+                        </span>
+                      )}
+                    </Link>
+                  </td>
+                  <td className="px-2 py-2.5 text-center font-mono text-night-200">{standing.played}</td>
+                  <td className="px-2 py-2.5 text-center font-mono text-night-200">{standing.won}</td>
+                  <td className="px-2 py-2.5 text-center font-mono text-night-200">{standing.drawn}</td>
+                  <td className="px-2 py-2.5 text-center font-mono text-night-200">{standing.lost}</td>
+                  <td className="px-2 py-2.5 text-center font-mono text-night-200">{standing.goalsFor}</td>
+                  <td className="px-2 py-2.5 text-center font-mono text-night-200">{standing.goalsAgainst}</td>
+                  <td
+                    className={clsx(
+                      'px-2 py-2.5 text-center font-mono font-semibold',
+                      standing.goalDifference > 0 ? 'text-pitch-300' : standing.goalDifference < 0 ? 'text-red-400' : 'text-night-300',
+                    )}
+                  >
+                    {standing.goalDifference > 0 ? '+' : ''}
+                    {standing.goalDifference}
+                  </td>
+                  <td className="px-3 py-2.5 text-center font-mono font-black text-pitch-300">{standing.points}</td>
+                </motion.tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

@@ -6,26 +6,24 @@ import { TeamFlag } from '@/components/teams/TeamFlag';
 import { Spinner } from '@/components/ui/Spinner';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { clsx } from 'clsx';
-
-const FAVORITES = new Set(['ESP', 'ARG', 'ESP', 'ARG']);
+import { useFavorites } from '@/lib/favorites';
 
 export function TopScorersPage() {
   const { data, isLoading, isError, error, refetch } = useTopScorers();
   const [search, setSearch] = useState('');
+  const { isFavorite } = useFavorites();
 
   const scorers = useMemo(() => {
     if (!data) return [];
     return data
-      .map((s) => {
-        const fav = FAVORITES.has(s.team.abbreviation.toUpperCase());
-        return { ...s, isFavorite: fav };
-      })
+      .map((s) => ({ ...s, isFavorite: isFavorite(s.team.abbreviation) }))
       .sort((a, b) => {
+        if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1;
         if (b.goals !== a.goals) return b.goals - a.goals;
         if (b.assists !== a.assists) return b.assists - a.assists;
         return a.matches - b.matches;
       });
-  }, [data]);
+  }, [data, isFavorite]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return scorers;

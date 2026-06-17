@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useParams, Link } from 'react-router';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Trophy, TrendingUp, Goal } from 'lucide-react';
+import { ArrowLeft, Trophy, TrendingUp, Goal, Star } from 'lucide-react';
 import { useStandings, useTeamMatches } from '@/hooks/useWorldCup';
 import { TeamFlag } from '@/components/teams/TeamFlag';
 import { MatchCard } from '@/components/matches/MatchCard';
@@ -9,12 +9,15 @@ import { Spinner } from '@/components/ui/Spinner';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { buildTeamFromAbbr } from '@/lib/teams';
 import { clsx } from 'clsx';
+import { useFavorites } from '@/lib/favorites';
 
 export function TeamDetailPage() {
   const { abbr } = useParams<{ abbr: string }>();
   const upperAbbr = (abbr ?? '').toUpperCase();
   const standingsQ = useStandings();
   const matchesQ = useTeamMatches(upperAbbr);
+  const { toggle, isFavorite } = useFavorites();
+  const isFav = isFavorite(upperAbbr);
 
   const standing = useMemo(() => {
     if (!standingsQ.data) return null;
@@ -51,14 +54,7 @@ export function TeamDetailPage() {
     return { gf, ga, wins, draws, losses, played: played.length, diff: gf - ga };
   }, [played, upperAbbr]);
 
-  const isFav = team.isFavorite;
-  const teamBgGradient = isFav
-    ? team.abbreviation === 'ESP'
-      ? 'gradient-spain'
-      : team.abbreviation === 'ARG'
-        ? 'gradient-argentina'
-        : 'gradient-pitch'
-    : 'gradient-pitch';
+  const teamBgGradient = isFav ? 'gradient-pitch' : 'gradient-pitch';
 
   return (
     <div className="space-y-8">
@@ -88,6 +84,19 @@ export function TeamDetailPage() {
             <div className="mt-2 text-sm text-night-200 uppercase tracking-wider">
               {team.abbreviation}
             </div>
+            <button
+              onClick={() => toggle(upperAbbr)}
+              className={clsx(
+                'mt-4 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all focus-ring',
+                isFav
+                  ? 'bg-pitch-500/20 text-pitch-200 hover:bg-pitch-500/30 border border-pitch-500/40'
+                  : 'bg-white/[0.06] text-white hover:bg-pitch-500 hover:shadow-lg hover:shadow-pitch-500/20 border border-white/10',
+              )}
+              aria-pressed={isFav}
+            >
+              <Star className={clsx('w-4 h-4', isFav && 'fill-current')} />
+              {isFav ? 'Siguiendo' : 'Seguir esta selección'}
+            </button>
           </div>
         </div>
       </motion.div>
