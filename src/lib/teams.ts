@@ -1,0 +1,95 @@
+import type { Team } from './types';
+
+const TEAM_REGISTRY: Record<string, Partial<Team> & { code: string; color: string; name: string; shortName?: string }> = {
+  ARG: { code: 'ar', color: '#75aadb', name: 'Argentina', shortName: 'Argentina' },
+  AUS: { code: 'au', color: '#00843d', name: 'Australia', shortName: 'Australia' },
+  BEL: { code: 'be', color: '#fdda24', name: 'Bélgica', shortName: 'Bélgica' },
+  BRA: { code: 'br', color: '#009c3b', name: 'Brasil', shortName: 'Brasil' },
+  CAN: { code: 'ca', color: '#ff0000', name: 'Canadá', shortName: 'Canadá' },
+  CRC: { code: 'cr', color: '#002b7f', name: 'Costa Rica', shortName: 'Costa Rica' },
+  CRO: { code: 'hr', color: '#ff0000', name: 'Croacia', shortName: 'Croacia' },
+  DEN: { code: 'dk', color: '#c8102e', name: 'Dinamarca', shortName: 'Dinamarca' },
+  ECU: { code: 'ec', color: '#fcd116', name: 'Ecuador', shortName: 'Ecuador' },
+  ENG: { code: 'gb-eng', color: '#cf142b', name: 'Inglaterra', shortName: 'Inglaterra' },
+  ESP: { code: 'es', color: '#c1121f', name: 'España', shortName: 'España' },
+  FRA: { code: 'fr', color: '#002395', name: 'Francia', shortName: 'Francia' },
+  GER: { code: 'de', color: '#000000', name: 'Alemania', shortName: 'Alemania' },
+  GHA: { code: 'gh', color: '#006b3f', name: 'Ghana', shortName: 'Ghana' },
+  IRN: { code: 'ir', color: '#239f40', name: 'Irán', shortName: 'Irán' },
+  JPN: { code: 'jp', color: '#bc002d', name: 'Japón', shortName: 'Japón' },
+  KOR: { code: 'kr', color: '#cd2e3a', name: 'Corea del Sur', shortName: 'Corea del Sur' },
+  MAR: { code: 'ma', color: '#c1272d', name: 'Marruecos', shortName: 'Marruecos' },
+  MEX: { code: 'mx', color: '#006847', name: 'México', shortName: 'México' },
+  NED: { code: 'nl', color: '#21468b', name: 'Países Bajos', shortName: 'Países Bajos' },
+  POL: { code: 'pl', color: '#dc143c', name: 'Polonia', shortName: 'Polonia' },
+  POR: { code: 'pt', color: '#006600', name: 'Portugal', shortName: 'Portugal' },
+  QAT: { code: 'qa', color: '#8d1b3d', name: 'Catar', shortName: 'Catar' },
+  SAU: { code: 'sa', color: '#006c35', name: 'Arabia Saudita', shortName: 'Arabia Saudita' },
+  SEN: { code: 'sn', color: '#00853f', name: 'Senegal', shortName: 'Senegal' },
+  SUI: { code: 'ch', color: '#da291c', name: 'Suiza', shortName: 'Suiza' },
+  TUN: { code: 'tn', color: '#e70013', name: 'Túnez', shortName: 'Túnez' },
+  URU: { code: 'uy', color: '#0038a8', name: 'Uruguay', shortName: 'Uruguay' },
+  USA: { code: 'us', color: '#bf0a30', name: 'Estados Unidos', shortName: 'EE.UU.' },
+  WAL: { code: 'gb-wls', color: '#d30731', name: 'Gales', shortName: 'Gales' },
+  CMR: { code: 'cm', color: '#007a5e', name: 'Camerún', shortName: 'Camerún' },
+  SRB: { code: 'rs', color: '#c7363d', name: 'Serbia', shortName: 'Serbia' },
+  NOR: { code: 'no', color: '#ef2b2d', name: 'Noruega', shortName: 'Noruega' },
+  SCO: { code: 'gb-sct', color: '#005eb8', name: 'Escocia', shortName: 'Escocia' },
+  AUT: { code: 'at', color: '#ed2939', name: 'Austria', shortName: 'Austria' },
+  CZE: { code: 'cz', color: '#11457e', name: 'Chequia', shortName: 'Chequia' },
+  TUR: { code: 'tr', color: '#e30a17', name: 'Turquía', shortName: 'Turquía' },
+  UKR: { code: 'ua', color: '#0057b7', name: 'Ucrania', shortName: 'Ucrania' },
+  PAN: { code: 'pa', color: '#005aa7', name: 'Panamá', shortName: 'Panamá' },
+  JAM: { code: 'jm', color: '#009b3a', name: 'Jamaica', shortName: 'Jamaica' },
+  HAI: { code: 'ht', color: '#00209f', name: 'Haití', shortName: 'Haití' },
+  NZL: { code: 'nz', color: '#000000', name: 'Nueva Zelanda', shortName: 'Nueva Zelanda' },
+  CUW: { code: 'cw', color: '#002b7f', name: 'Curaçao', shortName: 'Curaçao' },
+  CPV: { code: 'cv', color: '#003893', name: 'Cabo Verde', shortName: 'Cabo Verde' },
+  RSA: { code: 'za', color: '#007749', name: 'Sudáfrica', shortName: 'Sudáfrica' },
+  EGY: { code: 'eg', color: '#ce1126', name: 'Egipto', shortName: 'Egipto' },
+  ALG: { code: 'dz', color: '#006233', name: 'Argelia', shortName: 'Argelia' },
+  CIV: { code: 'ci', color: '#f77f00', name: 'Costa de Marfil', shortName: 'Costa de Marfil' },
+  NGA: { code: 'ng', color: '#008751', name: 'Nigeria', shortName: 'Nigeria' },
+  COL: { code: 'co', color: '#fcd116', name: 'Colombia', shortName: 'Colombia' },
+  CHI: { code: 'cl', color: '#0039a6', name: 'Chile', shortName: 'Chile' },
+  PER: { code: 'pe', color: '#d91023', name: 'Perú', shortName: 'Perú' },
+  PAR: { code: 'py', color: '#d52b1e', name: 'Paraguay', shortName: 'Paraguay' },
+  BOL: { code: 'bo', color: '#d52b1e', name: 'Bolivia', shortName: 'Bolivia' },
+  VEN: { code: 've', color: '#cf142b', name: 'Venezuela', shortName: 'Venezuela' },
+  HON: { code: 'hn', color: '#0073cf', name: 'Honduras', shortName: 'Honduras' },
+  SLV: { code: 'sv', color: '#0047ab', name: 'El Salvador', shortName: 'El Salvador' },
+  GUA: { code: 'gt', color: '#4997d0', name: 'Guatemala', shortName: 'Guatemala' },
+  CHN: { code: 'cn', color: '#de2910', name: 'China', shortName: 'China' },
+  IDN: { code: 'id', color: '#ce1126', name: 'Indonesia', shortName: 'Indonesia' },
+  IRQ: { code: 'iq', color: '#ce1126', name: 'Irak', shortName: 'Irak' },
+  JOR: { code: 'jo', color: '#000000', name: 'Jordania', shortName: 'Jordania' },
+  UZB: { code: 'uz', color: '#0099b5', name: 'Uzbekistán', shortName: 'Uzbekistán' },
+  AUS2: { code: 'au', color: '#00843d', name: 'Australia', shortName: 'Australia' },
+};
+
+const FAVORITES = new Set(['ARG', 'ESP']);
+
+export function buildTeamFromAbbr(abbr: string, id: string, name?: string): Team {
+  const key = abbr.toUpperCase();
+  const meta = TEAM_REGISTRY[key] ?? { code: 'xx', color: '#888', name: name ?? abbr };
+  const code = meta.code === 'xx' ? abbr.toLowerCase().slice(0, 2) : meta.code;
+  return {
+    id,
+    name: name ?? meta.name,
+    shortName: meta.shortName ?? meta.name,
+    abbreviation: abbr,
+    countryCode: code,
+    flagUrl: `https://flagcdn.com/w160/${code}.png`,
+    color: meta.color,
+    isFavorite: FAVORITES.has(key),
+  };
+}
+
+export function getFlagUrl(countryCode: string, size: 'w20' | 'w40' | 'w80' | 'w160' | 'w320' | 'w640' = 'w160'): string {
+  return `https://flagcdn.com/${size}/${countryCode.toLowerCase()}.png`;
+}
+
+export function isFavoriteTeam(team: Team | null | undefined): boolean {
+  if (!team) return false;
+  return FAVORITES.has(team.abbreviation.toUpperCase()) || team.isFavorite === true;
+}
