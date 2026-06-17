@@ -116,6 +116,33 @@ function datePartsInTZ(date: Date, timeZone: string): { date: string; time: stri
   };
 }
 
+function classifyPositionGroup(abbr: string | undefined): import('./types').PlayerPositionGroup {
+  const a = (abbr ?? '').toUpperCase();
+  // Goalkeepers
+  if (a === 'G' || a === 'GK' || a === 'GKP') return 'GK';
+  // Defenders — backs, center-backs, wing-backs
+  if (
+    a === 'D' || a === 'DEF' ||
+    a === 'CB' || a === 'RCB' || a === 'LCB' || a === 'CD' || a === 'CD-R' || a === 'CD-L' ||
+    a === 'RB' || a === 'LB' || a === 'RWB' || a === 'LWB' || a === 'RB5'
+  ) return 'DEF';
+  // Midfielders — DM, CM, AM, RM, LM and any "Midfielder" / "Midfielder" variants
+  if (
+    a === 'M' || a === 'MID' ||
+    a === 'DM' || a === 'CDM' || a === 'RDM' || a === 'LDM' ||
+    a === 'CM' || a === 'RCM' || a === 'LCM' || a === 'CM-R' || a === 'CM-L' ||
+    a === 'RM' || a === 'LM' ||
+    a === 'AM' || a === 'AM-R' || a === 'AM-L' || a === 'CAM' || a === 'RAM' || a === 'LAM'
+  ) return 'MID';
+  // Forwards — strikers, center-forwards, wingers
+  if (
+    a === 'F' || a === 'FW' || a === 'FWD' ||
+    a === 'ST' || a === 'CF' || a === 'CF-R' || a === 'CF-L' || a === 'RF' || a === 'LF' || a === 'RW' || a === 'LW'
+  ) return 'FWD';
+  // Default: classify by position name if abbreviation is unknown
+  return 'MID';
+}
+
 function classifyEventType(text: string, flags: { scoringPlay?: boolean; yellowCard?: boolean; redCard?: boolean; penaltyKick?: boolean; ownGoal?: boolean; shootout?: boolean }): import('./types').MatchEventType {
   const lower = text.toLowerCase();
   if (flags.redCard) return 'red_card';
@@ -656,15 +683,6 @@ function jerseyImageFor(matchId: string, athleteId: string | undefined): string 
 function headshotFor(athleteId: string | undefined): string | undefined {
   if (!athleteId) return undefined;
   return `https://a.espncdn.com/i/headshots/soccer/players/full/${athleteId}.png`;
-}
-
-function classifyPositionGroup(abbr: string | undefined): import('./types').PlayerPositionGroup {
-  const a = (abbr ?? '').toUpperCase();
-  if (a === 'G' || a === 'GK') return 'GK';
-  if (a === 'D' || a === 'DEF') return 'DEF';
-  if (a === 'M' || a === 'MID') return 'MID';
-  if (a === 'F' || a === 'FW' || a === 'FWD') return 'FWD';
-  return 'MID';
 }
 
 export function mapESPNLineups(
