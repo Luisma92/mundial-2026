@@ -54,7 +54,7 @@ function FullPitch({ home, away }: FullPitchProps) {
 
   return (
     <div className="rounded-2xl glass overflow-hidden">
-      <div className="relative w-full bg-pitch-900 mx-auto" style={{ aspectRatio: '5/4', maxHeight: '760px', maxWidth: '820px' }}>
+      <div className="relative w-full bg-pitch-900 mx-auto" style={{ aspectRatio: '5/4', maxHeight: '880px', maxWidth: '900px' }}>
         <PitchMarkings />
 
         {/* Top half (0–50% of pitch): away team — GK at top, FWD at center */}
@@ -222,13 +222,36 @@ function PlayerMarker({ player, teamColor }: PlayerMarkerProps) {
               .toUpperCase()}
           </div>
         )}
-        <div
-          className="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1.5 rounded-full ring-2 ring-night-900 text-[10px] font-mono font-bold text-white flex items-center justify-center shadow"
-          style={{ background: player.stats.goals > 0 ? '#22c55e' : 'transparent', color: player.stats.goals > 0 ? '#fff' : 'transparent' }}
-          title={player.stats.goals > 0 ? `${player.stats.goals} gol${player.stats.goals > 1 ? 'es' : ''}` : undefined}
-        >
-          {player.stats.goals > 0 ? player.stats.goals : ''}
-        </div>
+        {player.stats.goals > 0 && (
+          <div
+            className="absolute -top-2 -right-2 flex items-center"
+            title={`${player.stats.goals} gol${player.stats.goals > 1 ? 'es' : ''}`}
+          >
+            {Array.from({ length: Math.min(player.stats.goals, 3) }).map((_, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center justify-center w-5 h-5 rounded-full ring-2 ring-night-900 shadow text-[12px] leading-none"
+                style={{
+                  background: 'radial-gradient(circle at 35% 35%, #fff 0%, #f5f5f5 40%, #1a1a1a 80%)',
+                  marginLeft: i === 0 ? 0 : '-8px',
+                  zIndex: 10 - i,
+                }}
+              >
+                <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="#1a1a1a" strokeWidth="1.5">
+                  <polygon points="12,3 21,9 18,21 6,21 3,9" fill="none" />
+                  <line x1="12" y1="3" x2="12" y2="21" />
+                  <line x1="3" y1="9" x2="18" y2="21" />
+                  <line x1="21" y1="9" x2="6" y2="21" />
+                </svg>
+              </span>
+            ))}
+            {player.stats.goals > 3 && (
+              <span className="ml-1 px-1.5 h-5 rounded-full bg-pitch-500 ring-2 ring-night-900 text-[10px] font-mono font-bold text-white flex items-center justify-center">
+                {player.stats.goals}
+              </span>
+            )}
+          </div>
+        )}
       </div>
       <div className="hidden sm:block px-1.5 py-0.5 rounded bg-night-900/85 backdrop-blur-sm ring-1 ring-white/10 max-w-[88px] text-center">
         <div className="text-[10px] font-bold text-white leading-tight truncate">
