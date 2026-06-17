@@ -148,6 +148,7 @@ export interface Player {
   weight?: string;
   citizenship?: string;
   headshotUrl?: string;
+  color?: string;
   stats: PlayerStats;
 }
 

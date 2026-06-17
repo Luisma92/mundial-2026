@@ -33,6 +33,8 @@ export function PlayerCard({ player }: PlayerCardProps) {
     .join('')
     .toUpperCase();
 
+  const hasPhoto = !!player.headshotUrl && !imgFailed;
+
   return (
     <motion.div
       whileHover={{ y: -2 }}
@@ -43,36 +45,13 @@ export function PlayerCard({ player }: PlayerCardProps) {
       )}
     >
       <div className="flex items-start gap-3">
-        <div
-          className={clsx(
-            'relative w-16 h-16 rounded-2xl overflow-hidden shrink-0 ring-2',
-            ring,
-            'bg-gradient-to-br',
-            player.position.group === 'GK' && 'from-yellow-500/30 to-night-900',
-            player.position.group === 'DEF' && 'from-sky-500/30 to-night-900',
-            player.position.group === 'MID' && 'from-emerald-500/30 to-night-900',
-            player.position.group === 'FWD' && 'from-red-500/30 to-night-900',
-          )}
-        >
-          {player.headshotUrl && !imgFailed ? (
-            <img
-              src={player.headshotUrl}
-              alt={player.name}
-              loading="lazy"
-              className="w-full h-full object-cover"
-              onError={() => setImgFailed(true)}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg">
-              {initials || '?'}
-            </div>
-          )}
-          {player.stats.appearances > 0 && (
-            <div className="absolute -bottom-1 -right-1 min-w-[20px] h-5 px-1.5 rounded-full bg-pitch-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-night-900">
-              {player.stats.appearances}
-            </div>
-          )}
-        </div>
+        <PlayerAvatar
+          player={player}
+          initials={initials}
+          ringClass={ring}
+          hasPhoto={hasPhoto}
+          onPhotoError={() => setImgFailed(true)}
+        />
 
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-1.5 flex-wrap">
@@ -123,6 +102,87 @@ export function PlayerCard({ player }: PlayerCardProps) {
   );
 }
 
+interface PlayerAvatarProps {
+  player: Player;
+  initials: string;
+  ringClass: string;
+  hasPhoto: boolean;
+  onPhotoError: () => void;
+}
+
+function PlayerAvatar({ player, initials, ringClass, hasPhoto, onPhotoError }: PlayerAvatarProps) {
+  if (hasPhoto && player.headshotUrl) {
+    return (
+      <div className={clsx('relative w-16 h-16 rounded-2xl overflow-hidden shrink-0 ring-2', ringClass)}>
+        <img
+          src={player.headshotUrl}
+          alt={player.name}
+          loading="lazy"
+          className="w-full h-full object-cover bg-night-800"
+          onError={onPhotoError}
+        />
+        {player.stats.appearances > 0 && (
+          <div className="absolute -bottom-1 -right-1 min-w-[20px] h-5 px-1.5 rounded-full bg-pitch-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-night-900">
+            {player.stats.appearances}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const baseColor = player.color || '#444';
+  const jersey = player.jersey ?? '';
+  return (
+    <div
+      className={clsx('relative w-16 h-16 rounded-2xl overflow-hidden shrink-0 ring-2', ringClass)}
+      style={{
+        background: `linear-gradient(135deg, ${baseColor} 0%, ${baseColor}cc 60%, ${darken(baseColor, 30)} 100%)`,
+      }}
+      aria-label={player.name}
+    >
+      <div
+        className="absolute inset-0 opacity-25 mix-blend-overlay"
+        style={{
+          background: 'repeating-linear-gradient(135deg, transparent 0, transparent 6px, rgba(255,255,255,0.4) 6px, rgba(255,255,255,0.4) 7px)',
+        }}
+      />
+      <div
+        className="absolute inset-0 opacity-30"
+        style={{
+          background: 'radial-gradient(circle at 30% 20%, rgba(255,255,255,0.4) 0%, transparent 60%)',
+        }}
+      />
+      <div className="relative w-full h-full flex flex-col items-center justify-center">
+        <span className="font-display font-black text-2xl text-white drop-shadow-md leading-none tracking-tighter">
+          {initials || '?'}
+        </span>
+        {jersey && (
+          <span className="font-mono font-bold text-[10px] text-white/90 mt-0.5">#{jersey}</span>
+        )}
+      </div>
+      {player.stats.appearances > 0 && (
+        <div className="absolute -bottom-1 -right-1 min-w-[20px] h-5 px-1.5 rounded-full bg-pitch-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-night-900">
+          {player.stats.appearances}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function darken(hex: string, amount: number): string {
+  const m = hex.match(/^#?([a-f0-9]{6})$/i);
+  if (!m) return hex;
+  const num = parseInt(m[1], 16);
+  let r = (num >> 16) & 0xff;
+  let g = (num >> 8) & 0xff;
+  let b = num & 0xff;
+  const f = 1 - amount / 100;
+  r = Math.max(0, Math.min(255, Math.round(r * f)));
+  g = Math.max(0, Math.min(255, Math.round(g * f)));
+  b = Math.max(0, Math.min(255, Math.round(b * f)));
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+}
+
 interface StatCellProps {
   label: string;
   value: number;
@@ -151,3 +211,4 @@ function StatCell({ label, value, subValue, highlight, accent, icon }: StatCellP
     </div>
   );
 }
+

@@ -448,6 +448,7 @@ export interface ESPNRosterAthlete {
 
 export interface ESPNRosterPayload {
   athletes?: ESPNRosterAthlete[];
+  team?: { color?: string };
 }
 
 function classifyPosition(abbr: string | undefined): import('./types').PlayerPositionGroup {
@@ -489,6 +490,7 @@ export function mapESPNRoster(payload: ESPNRosterPayload): import('./types').Pla
       weight: ath.displayWeight,
       citizenship: ath.citizenship,
       headshotUrl,
+      color: payload.team?.color ? `#${payload.team.color}` : undefined,
       stats: {
         appearances: statsMap.get('appearances') ?? 0,
         minutesPlayed: statsMap.get('minutesPlayed') ?? 0,
