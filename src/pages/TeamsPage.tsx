@@ -9,7 +9,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { clsx } from 'clsx';
 import type { Team } from '@/lib/types';
 import { useFavorites } from '@/lib/favorites';
-import { getConfederation } from '@/lib/teams';
+import { getConfederation, isPlaceholderTeam } from '@/lib/teams';
 import { TOURNAMENT } from '@/lib/constants';
 
 type SortMode = 'confederation' | 'alphabetical' | 'favorites';
@@ -25,11 +25,13 @@ export function TeamsPage() {
   const allTeams = useMemo<Team[]>(() => {
     const set = new Map<string, Team>();
     for (const group of standingsQ.data ?? []) {
-      for (const s of group.standings) set.set(s.team.id, s.team);
+      for (const s of group.standings) {
+        if (!isPlaceholderTeam(s.team.abbreviation)) set.set(s.team.id, s.team);
+      }
     }
     for (const match of matchesQ.data ?? []) {
-      set.set(match.home.team.id, match.home.team);
-      set.set(match.away.team.id, match.away.team);
+      if (!isPlaceholderTeam(match.home.team.abbreviation)) set.set(match.home.team.id, match.home.team);
+      if (!isPlaceholderTeam(match.away.team.abbreviation)) set.set(match.away.team.id, match.away.team);
     }
     return Array.from(set.values()).sort((a, b) => a.name.localeCompare(b.name, 'es'));
   }, [standingsQ.data, matchesQ.data]);
