@@ -148,8 +148,30 @@ export interface Player {
   weight?: string;
   citizenship?: string;
   headshotUrl?: string;
+  jerseyImageUrl?: string;
   color?: string;
   stats: PlayerStats;
+}
+
+export interface LineupPlayer {
+  id: string;
+  name: string;
+  shortName: string;
+  position: { abbreviation: string; name: string; group: PlayerPositionGroup };
+  jersey: string;
+  formationPlace: number;
+  starter: boolean;
+  headshotUrl?: string;
+  jerseyImageUrl?: string;
+  stats: PlayerStats;
+}
+
+export interface TeamLineup {
+  homeAway: 'home' | 'away';
+  team: Team;
+  formation: string;
+  players: LineupPlayer[];
+  uniform?: { type?: string; color?: string; alternateColor?: string };
 }
 
 export interface Group {

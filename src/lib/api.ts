@@ -1,15 +1,17 @@
-import type { Group, Match, Bracket, TopScorer, Player } from './types';
+import type { Group, Match, Bracket, TopScorer, Player, TeamLineup } from './types';
 import {
   mapESPNEvents,
   mapESPNStandings,
   mapKnockoutMatches,
   mapESPNTopScorers,
   mapESPNRoster,
+  mapESPNLineups,
   aggregatePenaltyScorers,
   type ESPNEvent,
   type ESPNStandingGroup,
   type ESPNStatsPayload,
   type ESPNRosterPayload,
+  type ESPNSummaryPayload,
 } from './espn';
 import { TOURNAMENT } from './constants';
 
@@ -176,4 +178,13 @@ export async function fetchTeamRoster(abbr: string, signal?: AbortSignal): Promi
   ).catch(() => null);
   if (!payload) return [];
   return mapESPNRoster(payload);
+}
+
+export async function fetchMatchLineups(matchId: string, signal?: AbortSignal): Promise<TeamLineup[]> {
+  const payload = await fetchJSON<ESPNSummaryPayload>(
+    `${ESPN_SITE_BASE}/summary?event=${matchId}`,
+    signal,
+  ).catch(() => null);
+  if (!payload) return [];
+  return mapESPNLineups(payload, matchId);
 }

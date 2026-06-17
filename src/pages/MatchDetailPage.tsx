@@ -2,11 +2,12 @@ import { useMemo } from 'react';
 import { Link, useParams } from 'react-router';
 import { ArrowLeft, MapPin, Tv, Trophy, Calendar as CalendarIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useMatches } from '@/hooks/useWorldCup';
+import { useMatches, useMatchLineups } from '@/hooks/useWorldCup';
 import { TeamFlag } from '@/components/teams/TeamFlag';
 import { LiveBadge } from '@/components/matches/LiveBadge';
 import { ScoreDisplay } from '@/components/matches/ScoreDisplay';
 import { MatchTimeline } from '@/components/matches/MatchTimeline';
+import { MatchLineups } from '@/components/matches/MatchLineups';
 import { Spinner } from '@/components/ui/Spinner';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { formatMatchDate, formatMatchTime, timeUntil } from '@/lib/format';
@@ -14,6 +15,7 @@ import { formatMatchDate, formatMatchTime, timeUntil } from '@/lib/format';
 export function MatchDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading, isError, error, refetch } = useMatches();
+  const lineupsQ = useMatchLineups(id);
 
   const match = useMemo(() => data?.find((m) => m.id === id), [data, id]);
 
@@ -129,6 +131,10 @@ export function MatchDetailPage() {
           </div>
         </motion.section>
       ) : null}
+
+      {lineupsQ.data && lineupsQ.data.length === 2 && lineupsQ.data[0].players.length > 0 && (
+        <MatchLineups lineups={[lineupsQ.data[0], lineupsQ.data[1]]} />
+      )}
     </div>
   );
 }

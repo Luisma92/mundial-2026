@@ -610,3 +610,129 @@ export function aggregatePenaltyScorers(events: import('./types').MatchEvent[]):
   }
   return map;
 }
+
+interface ESPNSummaryAthlete {
+  id?: string;
+  displayName?: string;
+  shortName?: string;
+  fullName?: string;
+  jerseyImages?: Array<{ href?: string }>;
+}
+
+interface ESPNSummaryRosterEntry {
+  active?: boolean;
+  starter?: boolean;
+  jersey?: string;
+  athlete?: ESPNSummaryAthlete;
+  position?: { name?: string; displayName?: string; abbreviation?: string };
+  formationPlace?: string;
+  stats?: Array<{ name?: string; value?: number; displayValue?: string }>;
+}
+
+interface ESPNSummaryRoster {
+  homeAway?: 'home' | 'away';
+  team?: {
+    id?: string;
+    displayName?: string;
+    shortDisplayName?: string;
+    name?: string;
+    abbreviation?: string;
+    color?: string;
+  };
+  formation?: string;
+  uniform?: { type?: string; color?: string; alternateColor?: string };
+  roster?: ESPNSummaryRosterEntry[];
+}
+
+export interface ESPNSummaryPayload {
+  rosters?: ESPNSummaryRoster[];
+}
+
+function jerseyImageFor(matchId: string, athleteId: string | undefined): string | undefined {
+  if (!athleteId) return undefined;
+  return `https://stitcher.espn.com/sports/soccer/leagues/fifa.world/events/${matchId}/athletes/${athleteId}/jersey.png?darkMode=false`;
+}
+
+function headshotFor(athleteId: string | undefined): string | undefined {
+  if (!athleteId) return undefined;
+  return `https://a.espncdn.com/i/headshots/soccer/players/full/${athleteId}.png`;
+}
+
+function classifyPositionGroup(abbr: string | undefined): import('./types').PlayerPositionGroup {
+  const a = (abbr ?? '').toUpperCase();
+  if (a === 'G' || a === 'GK') return 'GK';
+  if (a === 'D' || a === 'DEF') return 'DEF';
+  if (a === 'M' || a === 'MID') return 'MID';
+  if (a === 'F' || a === 'FW' || a === 'FWD') return 'FWD';
+  return 'MID';
+}
+
+export function mapESPNLineups(
+  payload: ESPNSummaryPayload,
+  matchId: string,
+): import('./types').TeamLineup[] {
+  const rosters = payload.rosters ?? [];
+  const lineups: import('./types').TeamLineup[] = [];
+
+  for (const r of rosters) {
+    if (!r.homeAway || !r.team) continue;
+    const abbr = r.team.abbreviation ?? '';
+    const team: import('./types').Team = buildTeamFromAbbr(
+      abbr,
+      String(r.team.id ?? abbr),
+      r.team.displayName ?? r.team.shortDisplayName ?? r.team.name,
+    );
+    if (r.team.color) team.color = `#${r.team.color}`;
+
+    const players: import('./types').LineupPlayer[] = [];
+    for (const p of r.roster ?? []) {
+      const ath = p.athlete ?? {};
+      const id = ath.id ?? '';
+      const pos = p.position ?? {};
+      const statsMap = new Map<string, number>();
+      for (const s of p.stats ?? []) {
+        if (s.name) statsMap.set(s.name, asNumber(s.value ?? s.displayValue ?? 0));
+      }
+      players.push({
+        id,
+        name: ath.displayName ?? ath.fullName ?? '',
+        shortName: ath.shortName ?? ath.displayName ?? '',
+        position: {
+          abbreviation: pos.abbreviation ?? '?',
+          name: pos.displayName ?? pos.name ?? 'Jugador',
+          group: classifyPositionGroup(pos.abbreviation),
+        },
+        jersey: p.jersey ?? p.formationPlace ?? '?',
+        formationPlace: Number(p.formationPlace ?? 0) || 0,
+        starter: p.starter === true,
+        headshotUrl: headshotFor(id),
+        jerseyImageUrl: jerseyImageFor(matchId, id),
+        stats: {
+          appearances: statsMap.get('appearances') ?? (p.starter ? 1 : 0),
+          minutesPlayed: statsMap.get('minutesPlayed') ?? 0,
+          goals: statsMap.get('totalGoals') ?? 0,
+          assists: statsMap.get('goalAssists') ?? 0,
+          shots: statsMap.get('totalShots') ?? 0,
+          shotsOnTarget: statsMap.get('shotsOnTarget') ?? 0,
+          foulsCommitted: statsMap.get('foulsCommitted') ?? 0,
+          foulsSuffered: statsMap.get('foulsSuffered') ?? 0,
+          yellowCards: statsMap.get('yellowCards') ?? 0,
+          redCards: statsMap.get('redCards') ?? 0,
+          offsides: statsMap.get('offsides') ?? 0,
+          saves: statsMap.get('saves'),
+          goalsConceded: statsMap.get('goalsConceded'),
+          cleanSheets: statsMap.get('cleanSheets'),
+        },
+      });
+    }
+
+    lineups.push({
+      homeAway: r.homeAway,
+      team,
+      formation: r.formation ?? '',
+      players,
+      uniform: r.uniform,
+    });
+  }
+  return lineups;
+}
