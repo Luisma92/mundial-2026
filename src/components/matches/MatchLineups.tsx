@@ -54,7 +54,7 @@ function FullPitch({ home, away }: FullPitchProps) {
 
   return (
     <div className="rounded-2xl glass overflow-hidden">
-      <div className="relative w-full bg-pitch-900 mx-auto" style={{ aspectRatio: '4/3', maxHeight: '520px', maxWidth: '720px' }}>
+      <div className="relative w-full bg-pitch-900 mx-auto" style={{ aspectRatio: '5/4', maxHeight: '680px', maxWidth: '760px' }}>
         <PitchMarkings />
 
         {/* Top half (0–50% of pitch): away team — GK at top, FWD at center */}
