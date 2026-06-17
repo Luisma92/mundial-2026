@@ -7,6 +7,7 @@ import {
   fetchLiveMatches,
   fetchTeamMatches,
   fetchTopScorers,
+  fetchTeamRoster,
 } from '@/lib/api';
 import { REFRESH_INTERVALS } from '@/lib/constants';
 
@@ -66,5 +67,14 @@ export function useTopScorers() {
     queryKey: ['topScorers'],
     queryFn: ({ signal }) => fetchTopScorers(signal),
     refetchInterval: REFRESH_INTERVALS.standings,
+  });
+}
+
+export function useTeamRoster(abbr: string | undefined) {
+  return useQuery({
+    queryKey: ['teamRoster', abbr],
+    queryFn: ({ signal }) => fetchTeamRoster(abbr!, signal),
+    enabled: !!abbr,
+    staleTime: 10 * 60 * 1000,
   });
 }

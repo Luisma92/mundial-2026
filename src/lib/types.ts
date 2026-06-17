@@ -116,6 +116,41 @@ export interface TopScorer {
   penalties: number;
 }
 
+export type PlayerPositionGroup = 'GK' | 'DEF' | 'MID' | 'FWD';
+
+export interface PlayerStats {
+  appearances: number;
+  minutesPlayed: number;
+  goals: number;
+  assists: number;
+  shots: number;
+  shotsOnTarget: number;
+  foulsCommitted: number;
+  foulsSuffered: number;
+  yellowCards: number;
+  redCards: number;
+  offsides: number;
+  // Goalkeeping (GK only)
+  saves?: number;
+  goalsConceded?: number;
+  cleanSheets?: number;
+}
+
+export interface Player {
+  id: string;
+  name: string;
+  shortName: string;
+  position: { abbreviation: string; name: string; group: PlayerPositionGroup };
+  jersey?: string;
+  age?: number;
+  dateOfBirth?: string;
+  height?: string;
+  weight?: string;
+  citizenship?: string;
+  headshotUrl?: string;
+  stats: PlayerStats;
+}
+
 export interface Group {
   id: string;
   name: string;

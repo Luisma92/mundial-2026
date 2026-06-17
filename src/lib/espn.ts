@@ -418,6 +418,98 @@ export function emptyTeam(): Team {
   return buildTeamFromAbbr('TBD', 'tbd', 'Por definir');
 }
 
+export interface ESPNRosterAthlete {
+  id: string;
+  displayName?: string;
+  shortName?: string;
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
+  dateOfBirth?: string;
+  age?: number;
+  jersey?: string;
+  height?: number;
+  displayHeight?: string;
+  weight?: number;
+  displayWeight?: string;
+  citizenship?: string;
+  flag?: { href?: string };
+  position?: { id?: string; name?: string; displayName?: string; abbreviation?: string };
+  statistics?: {
+    splits?: {
+      categories?: Array<{
+        name?: string;
+        displayName?: string;
+        stats?: Array<{ name?: string; displayValue?: string; value?: number }>;
+      }>;
+    };
+  };
+}
+
+export interface ESPNRosterPayload {
+  athletes?: ESPNRosterAthlete[];
+}
+
+function classifyPosition(abbr: string | undefined): import('./types').PlayerPositionGroup {
+  const a = (abbr ?? '').toUpperCase();
+  if (a === 'G' || a === 'GK') return 'GK';
+  if (a === 'D' || a === 'DEF') return 'DEF';
+  if (a === 'M' || a === 'MID') return 'MID';
+  if (a === 'F' || a === 'FW' || a === 'FWD') return 'FWD';
+  return 'MID';
+}
+
+export function mapESPNRoster(payload: ESPNRosterPayload): import('./types').Player[] {
+  const athletes = payload.athletes ?? [];
+  const players: import('./types').Player[] = [];
+  for (const ath of athletes) {
+    const statsMap = new Map<string, number>();
+    for (const cat of ath.statistics?.splits?.categories ?? []) {
+      for (const s of cat.stats ?? []) {
+        if (s.name) statsMap.set(s.name, asNumber(s.value ?? s.displayValue ?? 0));
+      }
+    }
+    const position = ath.position;
+    const headshotUrl = ath.id
+      ? `https://a.espncdn.com/i/headshots/soccer/players/full/${ath.id}.png`
+      : undefined;
+    players.push({
+      id: ath.id,
+      name: ath.displayName ?? ath.fullName ?? `${ath.firstName ?? ''} ${ath.lastName ?? ''}`.trim(),
+      shortName: ath.shortName ?? ath.displayName ?? '',
+      position: {
+        abbreviation: position?.abbreviation ?? '?',
+        name: position?.displayName ?? position?.name ?? 'Jugador',
+        group: classifyPosition(position?.abbreviation),
+      },
+      jersey: ath.jersey,
+      age: ath.age,
+      dateOfBirth: ath.dateOfBirth,
+      height: ath.displayHeight,
+      weight: ath.displayWeight,
+      citizenship: ath.citizenship,
+      headshotUrl,
+      stats: {
+        appearances: statsMap.get('appearances') ?? 0,
+        minutesPlayed: statsMap.get('minutesPlayed') ?? 0,
+        goals: statsMap.get('totalGoals') ?? 0,
+        assists: statsMap.get('goalAssists') ?? 0,
+        shots: statsMap.get('totalShots') ?? 0,
+        shotsOnTarget: statsMap.get('shotsOnTarget') ?? 0,
+        foulsCommitted: statsMap.get('foulsCommitted') ?? 0,
+        foulsSuffered: statsMap.get('foulsSuffered') ?? 0,
+        yellowCards: statsMap.get('yellowCards') ?? 0,
+        redCards: statsMap.get('redCards') ?? 0,
+        offsides: statsMap.get('offsides') ?? 0,
+        saves: statsMap.get('saves'),
+        goalsConceded: statsMap.get('goalsConceded'),
+        cleanSheets: statsMap.get('cleanSheets'),
+      },
+    });
+  }
+  return players;
+}
+
 export interface ESPNStatsAthlete {
   id: string;
   displayName: string;

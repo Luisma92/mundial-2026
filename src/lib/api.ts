@@ -1,13 +1,15 @@
-import type { Group, Match, Bracket, TopScorer } from './types';
+import type { Group, Match, Bracket, TopScorer, Player } from './types';
 import {
   mapESPNEvents,
   mapESPNStandings,
   mapKnockoutMatches,
   mapESPNTopScorers,
+  mapESPNRoster,
   aggregatePenaltyScorers,
   type ESPNEvent,
   type ESPNStandingGroup,
   type ESPNStatsPayload,
+  type ESPNRosterPayload,
 } from './espn';
 import { TOURNAMENT } from './constants';
 
@@ -127,4 +129,51 @@ export async function fetchTopScorers(signal?: AbortSignal): Promise<TopScorer[]
   (stats as unknown as { _eventPenalties: Map<string, number> })._eventPenalties = penaltyMap;
 
   return mapESPNTopScorers(stats);
+}
+
+interface ESPNTeamListEntry {
+  team?: {
+    id?: string;
+    abbreviation?: string;
+  };
+}
+
+async function resolveTeamId(abbr: string, signal?: AbortSignal): Promise<string | null> {
+  // 1) Try standings (always populated during tournament)
+  const standings = await fetchJSON<{ children?: ESPNStandingGroup[] }>(
+    `${ESPN_API_BASE}/standings`,
+    signal,
+  ).catch(() => null);
+  if (standings?.children) {
+    for (const group of standings.children) {
+      for (const e of group.standings?.entries ?? []) {
+        if (e.team?.abbreviation?.toUpperCase() === abbr.toUpperCase() && e.team?.id) {
+          return String(e.team.id);
+        }
+      }
+    }
+  }
+  // 2) Fallback to /teams endpoint
+  const teams = await fetchJSON<{ sports?: Array<{ leagues?: Array<{ teams?: ESPNTeamListEntry[] }> }> }>(
+    `${ESPN_SITE_BASE}/teams?limit=100`,
+    signal,
+  ).catch(() => null);
+  const teamList = teams?.sports?.[0]?.leagues?.[0]?.teams ?? [];
+  for (const t of teamList) {
+    if (t.team?.abbreviation?.toUpperCase() === abbr.toUpperCase() && t.team?.id) {
+      return String(t.team.id);
+    }
+  }
+  return null;
+}
+
+export async function fetchTeamRoster(abbr: string, signal?: AbortSignal): Promise<Player[]> {
+  const teamId = await resolveTeamId(abbr, signal);
+  if (!teamId) return [];
+  const payload = await fetchJSON<ESPNRosterPayload>(
+    `${ESPN_SITE_BASE}/teams/${teamId}/roster`,
+    signal,
+  ).catch(() => null);
+  if (!payload) return [];
+  return mapESPNRoster(payload);
 }
