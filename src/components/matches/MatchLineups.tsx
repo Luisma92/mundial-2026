@@ -61,59 +61,44 @@ function FullPitch({ home, away }: FullPitchProps) {
       <div className="relative w-full bg-pitch-900" style={{ aspectRatio: '5/7' }}>
         <PitchMarkings />
 
-        {/* Away team — top half, attacking down */}
-        <TeamHalf
-          rows={awayRows}
-          teamColor={away.team.color}
-          teamColor2={away.uniform?.alternateColor ? `#${away.uniform.alternateColor}` : undefined}
-          orientation="top"
-        />
+        {/* Top half: away team — GK at top, FWD at center line */}
+        <div className="absolute top-0 left-0 right-0 h-1/2 flex flex-col justify-between py-[8%]">
+          {(['GK', 'DEF', 'MID', 'FWD'] as const).map((row) => (
+            <PlayerRow
+              key={`away-${row}`}
+              row={row}
+              players={awayRows[row]}
+              teamColor={away.team.color}
+              teamColor2={away.uniform?.alternateColor ? `#${away.uniform.alternateColor}` : undefined}
+            />
+          ))}
+        </div>
 
-        {/* Home team — bottom half, attacking up */}
-        <TeamHalf
-          rows={homeRows}
-          teamColor={home.team.color}
-          teamColor2={home.uniform?.alternateColor ? `#${home.uniform.alternateColor}` : undefined}
-          orientation="bottom"
-        />
+        {/* Bottom half: home team — FWD at center line, GK at own goal */}
+        <div className="absolute bottom-0 left-0 right-0 h-1/2 flex flex-col justify-between py-[8%]">
+          {(['FWD', 'MID', 'DEF', 'GK'] as const).map((row) => (
+            <PlayerRow
+              key={`home-${row}`}
+              row={row}
+              players={homeRows[row]}
+              teamColor={home.team.color}
+              teamColor2={home.uniform?.alternateColor ? `#${home.uniform.alternateColor}` : undefined}
+            />
+          ))}
+        </div>
+
+        {/* Center line label to visually separate the two halves */}
+        <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 pointer-events-none flex justify-center">
+          <div className="px-2 py-0.5 rounded-full bg-night-900/70 backdrop-blur-sm text-[9px] uppercase tracking-widest text-night-400 ring-1 ring-white/10">
+            centro del campo
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 border-t border-white/5">
         <SubsSection lineup={home} subs={homeSubs} align="left" />
         <SubsSection lineup={away} subs={awaySubs} align="right" />
       </div>
-    </div>
-  );
-}
-
-interface TeamHalfProps {
-  rows: Record<PlayerPositionGroup, LineupPlayer[]>;
-  teamColor: string;
-  teamColor2?: string;
-  orientation: 'top' | 'bottom';
-}
-
-function TeamHalf({ rows, teamColor, teamColor2, orientation }: TeamHalfProps) {
-  // Row order from back to front (away attacks down → GK top, then DEF, MID, FWD)
-  // For home (bottom): FWD top (closer to opponent goal), then MID, DEF, GK at very bottom
-  const rowOrder: PlayerPositionGroup[] = orientation === 'top'
-    ? ['GK', 'DEF', 'MID', 'FWD']  // away: GK at very top
-    : ['FWD', 'MID', 'DEF', 'GK']; // home: GK at very bottom
-
-  return (
-    <div
-      className="absolute inset-0 flex flex-col justify-between py-[6%] pointer-events-none"
-      style={{ flexDirection: orientation === 'top' ? 'column' : 'column-reverse' }}
-    >
-      {rowOrder.map((row) => (
-        <PlayerRow
-          key={row}
-          row={row}
-          players={rows[row]}
-          teamColor={teamColor}
-          teamColor2={teamColor2}
-        />
-      ))}
     </div>
   );
 }
