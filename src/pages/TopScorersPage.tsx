@@ -200,7 +200,7 @@ function Podium({ top }: { top: ReturnType<typeof useTopScorers>['data'] extends
     >
       {order.map((scorer, idx) => {
         if (!scorer) return null;
-        const realIdx = idx === 0 ? 1 : idx === 1 ? 0 : 2;
+        const realIdx = idx;
         return (
           <motion.div
             key={scorer.athlete.id}
