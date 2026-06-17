@@ -54,7 +54,7 @@ function FullPitch({ home, away }: FullPitchProps) {
 
   return (
     <div className="rounded-2xl glass overflow-hidden">
-      <div className="relative w-full bg-pitch-900 mx-auto" style={{ aspectRatio: '5/4', maxHeight: '680px', maxWidth: '760px' }}>
+      <div className="relative w-full bg-pitch-900 mx-auto" style={{ aspectRatio: '5/4', maxHeight: '760px', maxWidth: '820px' }}>
         <PitchMarkings />
 
         {/* Top half (0–50% of pitch): away team — GK at top, FWD at center */}
@@ -223,10 +223,11 @@ function PlayerMarker({ player, teamColor }: PlayerMarkerProps) {
           </div>
         )}
         <div
-          className="absolute -bottom-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full ring-2 ring-night-900 text-[10px] font-mono font-bold text-white flex items-center justify-center shadow"
-          style={{ background: teamColor }}
+          className="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1.5 rounded-full ring-2 ring-night-900 text-[10px] font-mono font-bold text-white flex items-center justify-center shadow"
+          style={{ background: player.stats.goals > 0 ? '#22c55e' : 'transparent', color: player.stats.goals > 0 ? '#fff' : 'transparent' }}
+          title={player.stats.goals > 0 ? `${player.stats.goals} gol${player.stats.goals > 1 ? 'es' : ''}` : undefined}
         >
-          {player.jersey}
+          {player.stats.goals > 0 ? player.stats.goals : ''}
         </div>
       </div>
       <div className="hidden sm:block px-1.5 py-0.5 rounded bg-night-900/85 backdrop-blur-sm ring-1 ring-white/10 max-w-[88px] text-center">
