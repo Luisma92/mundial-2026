@@ -6,6 +6,7 @@ import {
   fetchTodayMatches,
   fetchLiveMatches,
   fetchTeamMatches,
+  fetchTopScorers,
 } from '@/lib/api';
 import { REFRESH_INTERVALS } from '@/lib/constants';
 
@@ -56,6 +57,14 @@ export function useBracket() {
   return useQuery({
     queryKey: ['bracket', TIMEZONE],
     queryFn: ({ signal }) => fetchBracket(signal),
+    refetchInterval: REFRESH_INTERVALS.standings,
+  });
+}
+
+export function useTopScorers() {
+  return useQuery({
+    queryKey: ['topScorers'],
+    queryFn: ({ signal }) => fetchTopScorers(signal),
     refetchInterval: REFRESH_INTERVALS.standings,
   });
 }

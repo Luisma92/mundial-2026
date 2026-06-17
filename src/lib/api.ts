@@ -1,16 +1,19 @@
-import type { Group, Match, Bracket } from './types';
+import type { Group, Match, Bracket, TopScorer } from './types';
 import {
   mapESPNEvents,
   mapESPNStandings,
   mapKnockoutMatches,
+  mapESPNTopScorers,
+  aggregatePenaltyScorers,
   type ESPNEvent,
   type ESPNStandingGroup,
+  type ESPNStatsPayload,
 } from './espn';
 import { TOURNAMENT } from './constants';
 
-const DEFAULT_BASE = (import.meta.env.VITE_N8N_BASE as string | undefined) ?? 'https://n8n.nuc';
 const ESPN_SITE_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world';
 const ESPN_API_BASE = 'https://site.api.espn.com/apis/v2/sports/soccer/fifa.world';
+const N8N_BASE = (import.meta.env.VITE_N8N_BASE as string | undefined) ?? null;
 
 export interface N8nScoreboardResponse {
   source: string;
@@ -34,8 +37,9 @@ interface ESPNDirectScoreboard {
 }
 
 async function fetchFromN8n<T>(path: string, signal?: AbortSignal): Promise<T | null> {
+  if (!N8N_BASE) return null;
   try {
-    const url = `${DEFAULT_BASE}${path}`;
+    const url = `${N8N_BASE}${path}`;
     return await fetchJSON<T>(url, signal);
   } catch (err) {
     if (import.meta.env.DEV) {
@@ -104,4 +108,23 @@ export async function fetchTeamMatches(teamAbbr: string, signal?: AbortSignal): 
       m.home.team.abbreviation.toUpperCase() === abbr ||
       m.away.team.abbreviation.toUpperCase() === abbr,
   );
+}
+
+export async function fetchTopScorers(signal?: AbortSignal): Promise<TopScorer[]> {
+  const [stats, matches] = await Promise.all([
+    fetchJSON<ESPNStatsPayload>(
+      `${ESPN_SITE_BASE}/statistics`,
+      signal,
+    ).catch(() => null),
+    fetchMatches('Europe/Madrid', signal).catch(() => [] as Match[]),
+  ]);
+  if (!stats) return [];
+
+  // Aggregate penalty scorers from match events
+  const allEvents = matches.flatMap((m) => m.events ?? []);
+  const penaltyMap = aggregatePenaltyScorers(allEvents);
+  // Inject into payload-like object for the mapper
+  (stats as unknown as { _eventPenalties: Map<string, number> })._eventPenalties = penaltyMap;
+
+  return mapESPNTopScorers(stats);
 }

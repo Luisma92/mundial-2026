@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router';
+import { Check, Sparkles } from 'lucide-react';
 import type { Team, MatchStatus } from '@/lib/types';
 import { TeamFlag } from '@/components/teams/TeamFlag';
 import { LiveBadge } from '@/components/matches/LiveBadge';
@@ -8,6 +9,9 @@ import { clsx } from 'clsx';
 interface BracketMatchNodeProps {
   match: BracketNodeMatch;
   size?: 'sm' | 'md';
+  predictionAbbr?: string;
+  onPredict?: (winnerAbbr: string) => void;
+  showPredictionControls?: boolean;
 }
 
 export interface BracketNodeMatch {
@@ -22,7 +26,7 @@ export interface BracketNodeMatch {
   clock?: string;
 }
 
-export function BracketMatchNode({ match, size = 'sm' }: BracketMatchNodeProps) {
+export function BracketMatchNode({ match, size = 'sm', predictionAbbr, onPredict, showPredictionControls }: BracketMatchNodeProps) {
   const isLive = match.status === 'in_progress' || match.status === 'halftime';
   const hasScore = match.status === 'final' || match.status === 'in_progress' || match.status === 'halftime';
   const homeTeam = match.homeTeam;
@@ -43,6 +47,9 @@ export function BracketMatchNode({ match, size = 'sm' }: BracketMatchNodeProps) 
     );
   }
 
+  const homeIsPredicted = predictionAbbr?.toUpperCase() === homeTeam.abbreviation.toUpperCase();
+  const awayIsPredicted = predictionAbbr?.toUpperCase() === awayTeam.abbreviation.toUpperCase();
+
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
@@ -59,6 +66,11 @@ export function BracketMatchNode({ match, size = 'sm' }: BracketMatchNodeProps) 
             <span className={clsx('truncate font-medium', winner === 'home' ? 'text-pitch-300' : 'text-white')}>
               {homeTeam.shortName}
             </span>
+            {homeIsPredicted && (
+              <span title="Tu predicción">
+                <Sparkles className="w-3 h-3 text-yellow-300 shrink-0" />
+              </span>
+            )}
           </div>
           <span className={clsx('font-mono font-bold tabular-nums w-5 text-center', winner === 'home' ? 'text-pitch-300' : 'text-white')}>
             {hasScore && homeScore !== null ? homeScore : '-'}
@@ -70,6 +82,11 @@ export function BracketMatchNode({ match, size = 'sm' }: BracketMatchNodeProps) 
             <span className={clsx('truncate font-medium', winner === 'away' ? 'text-pitch-300' : 'text-white')}>
               {awayTeam.shortName}
             </span>
+            {awayIsPredicted && (
+              <span title="Tu predicción">
+                <Sparkles className="w-3 h-3 text-yellow-300 shrink-0" />
+              </span>
+            )}
           </div>
           <span className={clsx('font-mono font-bold tabular-nums w-5 text-center', winner === 'away' ? 'text-pitch-300' : 'text-white')}>
             {hasScore && awayScore !== null ? awayScore : '-'}
@@ -81,6 +98,40 @@ export function BracketMatchNode({ match, size = 'sm' }: BracketMatchNodeProps) 
           </div>
         )}
       </Link>
+      {showPredictionControls && onPredict && (
+        <div className="border-t border-white/5 grid grid-cols-2 gap-px bg-white/5">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              onPredict(homeTeam.abbreviation);
+            }}
+            className={clsx(
+              'px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors focus-ring',
+              homeIsPredicted
+                ? 'bg-yellow-500/20 text-yellow-300'
+                : 'bg-transparent text-night-400 hover:bg-white/5 hover:text-white',
+            )}
+          >
+            {homeIsPredicted ? <Check className="w-3 h-3 inline mr-1" /> : null}
+            {homeTeam.abbreviation}
+          </button>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              onPredict(awayTeam.abbreviation);
+            }}
+            className={clsx(
+              'px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors focus-ring',
+              awayIsPredicted
+                ? 'bg-yellow-500/20 text-yellow-300'
+                : 'bg-transparent text-night-400 hover:bg-white/5 hover:text-white',
+            )}
+          >
+            {awayIsPredicted ? <Check className="w-3 h-3 inline mr-1" /> : null}
+            {awayTeam.abbreviation}
+          </button>
+        </div>
+      )}
     </motion.div>
   );
 }

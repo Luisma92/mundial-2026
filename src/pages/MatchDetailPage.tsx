@@ -6,6 +6,7 @@ import { useMatches } from '@/hooks/useWorldCup';
 import { TeamFlag } from '@/components/teams/TeamFlag';
 import { LiveBadge } from '@/components/matches/LiveBadge';
 import { ScoreDisplay } from '@/components/matches/ScoreDisplay';
+import { MatchTimeline } from '@/components/matches/MatchTimeline';
 import { Spinner } from '@/components/ui/Spinner';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { formatMatchDate, formatMatchTime, timeUntil } from '@/lib/format';
@@ -35,6 +36,7 @@ export function MatchDetailPage() {
 
   const isLive = match.status === 'in_progress' || match.status === 'halftime';
   const isFinished = match.status === 'final';
+  const hasEvents = match.events && match.events.length > 0;
 
   return (
     <div className="space-y-6">
@@ -50,7 +52,7 @@ export function MatchDetailPage() {
       >
         <div className="absolute inset-0 pitch-pattern opacity-30" />
         <div className="relative p-8 sm:p-12 text-center">
-          <div className="flex items-center justify-center gap-2 mb-3">
+          <div className="flex items-center justify-center gap-2 mb-3 flex-wrap">
             {match.group && <span className="chip bg-white/10 text-night-100">{match.group}</span>}
             <span className="chip bg-white/10 text-night-100">{match.round}</span>
             {isLive ? (
@@ -105,6 +107,28 @@ export function MatchDetailPage() {
         )}
         <InfoCard icon={Trophy} label="Fase" value={match.round || match.phase} />
       </div>
+
+      {hasEvents ? (
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="space-y-4"
+        >
+          <h2 className="text-xl font-display font-black text-white uppercase tracking-tight inline-flex items-center gap-2">
+            <span className="text-pitch-400">●</span>
+            Eventos del partido
+            <span className="text-xs text-night-400 font-normal normal-case tracking-normal">· {match.events!.length}</span>
+          </h2>
+          <div className="rounded-2xl glass p-6">
+            <MatchTimeline
+              events={match.events!}
+              homeAbbr={match.home.team.abbreviation}
+              awayAbbr={match.away.team.abbreviation}
+            />
+          </div>
+        </motion.section>
+      ) : null}
     </div>
   );
 }

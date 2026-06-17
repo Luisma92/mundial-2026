@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link, NavLink, useLocation } from 'react-router';
-import { Trophy, Calendar, Users, GitBranch, Flag, LayoutDashboard, Radio } from 'lucide-react';
+import { Trophy, Calendar, Users, GitBranch, Flag, LayoutDashboard, Radio, Goal } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useEffect, useState } from 'react';
 
@@ -8,6 +8,7 @@ const NAV = [
   { to: '/', label: 'Inicio', icon: LayoutDashboard },
   { to: '/grupos', label: 'Grupos', icon: Flag },
   { to: '/calendario', label: 'Calendario', icon: Calendar },
+  { to: '/goleadores', label: 'Goleadores', icon: Goal },
   { to: '/eliminatorias', label: 'Eliminatorias', icon: GitBranch },
   { to: '/equipos', label: 'Equipos', icon: Users },
 ] as const;

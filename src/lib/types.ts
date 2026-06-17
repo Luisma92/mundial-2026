@@ -50,6 +50,40 @@ export interface Match {
   away: MatchCompetitor;
   score?: MatchScore;
   winner?: 'home' | 'away' | 'draw';
+  events?: MatchEvent[];
+}
+
+export type MatchEventType =
+  | 'goal'
+  | 'own_goal'
+  | 'penalty_goal'
+  | 'penalty_missed'
+  | 'yellow_card'
+  | 'red_card'
+  | 'substitution'
+  | 'var'
+  | 'other';
+
+export interface MatchEventAthlete {
+  id: string;
+  name: string;
+  shortName: string;
+  jersey?: string;
+  position?: string;
+  headshot?: string;
+}
+
+export interface MatchEvent {
+  id: string;
+  type: MatchEventType;
+  rawType: string;
+  minute: number;
+  displayMinute: string;
+  teamAbbr: string;
+  teamId: string;
+  scoreAfter: string;
+  athletes: MatchEventAthlete[];
+  detail?: string;
 }
 
 export interface GroupStanding {
@@ -65,6 +99,21 @@ export interface GroupStanding {
   points: number;
   qualificationStatus: 'qualified' | 'playoff' | 'eliminated' | 'pending';
   form?: ('W' | 'D' | 'L')[];
+}
+
+export interface TopScorer {
+  rank: number;
+  athlete: {
+    id: string;
+    name: string;
+    shortName: string;
+    headshot?: string;
+  };
+  team: Team;
+  goals: number;
+  assists: number;
+  matches: number;
+  penalties: number;
 }
 
 export interface Group {
@@ -83,6 +132,7 @@ export interface BracketMatch {
   home: { team: Team | null; score: number | null; fromMatchId?: string };
   away: { team: Team | null; score: number | null; fromMatchId?: string };
   startTimeUtc?: string;
+  winner?: 'home' | 'away' | 'draw';
 }
 
 export interface Bracket {

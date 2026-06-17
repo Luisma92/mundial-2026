@@ -10,6 +10,7 @@ const BracketPage = lazy(() => import('@/pages/BracketPage').then((m) => ({ defa
 const TeamsPage = lazy(() => import('@/pages/TeamsPage').then((m) => ({ default: m.TeamsPage })));
 const TeamDetailPage = lazy(() => import('@/pages/TeamDetailPage').then((m) => ({ default: m.TeamDetailPage })));
 const MatchDetailPage = lazy(() => import('@/pages/MatchDetailPage').then((m) => ({ default: m.MatchDetailPage })));
+const TopScorersPage = lazy(() => import('@/pages/TopScorersPage').then((m) => ({ default: m.TopScorersPage })));
 
 function PageFallback() {
   return (
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/grupos" element={<GroupsPage />} />
             <Route path="/calendario" element={<CalendarPage />} />
+            <Route path="/goleadores" element={<TopScorersPage />} />
             <Route path="/eliminatorias" element={<BracketPage />} />
             <Route path="/equipos" element={<TeamsPage />} />
             <Route path="/equipos/:abbr" element={<TeamDetailPage />} />

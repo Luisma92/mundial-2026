@@ -1,16 +1,20 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Search } from 'lucide-react';
+import { Search, Sparkles, Target } from 'lucide-react';
+import { Link } from 'react-router';
 import { useStandings } from '@/hooks/useWorldCup';
 import { GroupTable } from '@/components/groups/GroupTable';
+import { GroupPredictionPanel } from '@/components/groups/GroupPredictionPanel';
 import { Spinner } from '@/components/ui/Spinner';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { clsx } from 'clsx';
 import type { Group } from '@/lib/types';
+import { loadPredictions, getPredictionScore } from '@/lib/predictions';
 
 export function GroupsPage() {
   const { data, isLoading, isError, error, refetch } = useStandings();
   const [search, setSearch] = useState('');
+  const [, setRefresh] = useState(0);
 
   const filtered = useMemo(() => {
     if (!data) return [];
@@ -25,6 +29,9 @@ export function GroupsPage() {
       }))
       .filter((g) => g.standings.length > 0);
   }, [data, search]);
+
+  const predictions = useMemo(() => loadPredictions(), [data]);
+  const score = useMemo(() => getPredictionScore(data ?? [], null, predictions), [data, predictions]);
 
   return (
     <div className="space-y-6">
@@ -48,6 +55,8 @@ export function GroupsPage() {
         </div>
       </header>
 
+      <PredictionBanner score={score} onRefresh={() => setRefresh((r) => r + 1)} />
+
       {isLoading ? (
         <div className="rounded-2xl glass p-12"><Spinner label="Cargando posiciones..." /></div>
       ) : isError ? (
@@ -64,8 +73,10 @@ export function GroupsPage() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.03 }}
+              className="space-y-3"
             >
               <GroupTable group={group as Group} />
+              <GroupPredictionPanel group={group as Group} />
             </motion.div>
           ))}
         </motion.div>
@@ -77,5 +88,59 @@ export function GroupsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function PredictionBanner({ score, onRefresh }: { score: ReturnType<typeof getPredictionScore>; onRefresh: () => void }) {
+  const totalPredicted = score.details.groupTotal + score.details.bracketTotal;
+  const totalCorrect = score.totalCorrect;
+  const accuracy = totalPredicted > 0 ? Math.round((totalCorrect / totalPredicted) * 100) : 0;
+
+  return (
+    <motion.div
+      onClick={onRefresh}
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl glass-strong p-5 sm:p-6 relative overflow-hidden"
+    >
+      <div className="absolute inset-0 bg-gradient-to-r from-pitch-500/5 via-transparent to-argentina-500/5 pointer-events-none" />
+      <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-pitch-500/20 flex items-center justify-center">
+            <Sparkles className="w-6 h-6 text-pitch-300" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-display font-black text-white">Bracket Challenge</h2>
+              <span className="chip bg-pitch-500/15 text-pitch-300">Activo</span>
+            </div>
+            <p className="text-xs text-night-400 mt-0.5">
+              Predecí los 2 clasificados de cada grupo · se califica automáticamente cuando termine la fase de grupos
+            </p>
+          </div>
+        </div>
+        {totalPredicted > 0 ? (
+          <div className="flex items-center gap-4">
+            <div className="text-center">
+              <div className="text-[10px] uppercase tracking-widest text-night-400">Aciertos</div>
+              <div className="font-mono font-black text-2xl text-pitch-300">{totalCorrect}/{totalPredicted}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-[10px] uppercase tracking-widest text-night-400">%</div>
+              <div className="font-mono font-black text-2xl text-white">{accuracy}%</div>
+            </div>
+            <div className="text-center">
+              <div className="text-[10px] uppercase tracking-widest text-night-400">Puntos</div>
+              <div className="font-mono font-black text-2xl text-yellow-300">{score.groupPoints + score.bracketPoints}</div>
+            </div>
+          </div>
+        ) : (
+          <Link to="/eliminatorias" className="text-xs text-pitch-300 hover:text-pitch-200 inline-flex items-center gap-1">
+            <Target className="w-3 h-3" />
+            Ver cuadro eliminatorio
+          </Link>
+        )}
+      </div>
+    </motion.div>
   );
 }

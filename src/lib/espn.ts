@@ -43,6 +43,28 @@ interface ESPNCompetition {
   altGameNote?: string;
   notes?: Array<{ headline?: string }>;
   groups?: { group?: { name?: string } };
+  details?: Array<{
+    id?: string;
+    type?: { id?: number; text?: string; abbreviation?: string };
+    clock?: { displayValue?: string; value?: number };
+    team?: { id?: string; abbreviation?: string };
+    scoreValue?: number;
+    scoringPlay?: boolean;
+    yellowCard?: boolean;
+    redCard?: boolean;
+    penaltyKick?: boolean;
+    ownGoal?: boolean;
+    shootout?: boolean;
+    athletesInvolved?: Array<{
+      id?: string;
+      displayName?: string;
+      shortName?: string;
+      fullName?: string;
+      jersey?: string;
+      position?: string;
+      headshot?: string;
+    }>;
+  }>;
 }
 
 interface ESPNLink {
@@ -92,6 +114,77 @@ function datePartsInTZ(date: Date, timeZone: string): { date: string; time: stri
     date: `${parts.year}-${parts.month}-${parts.day}`,
     time: `${parts.hour}:${parts.minute}`,
   };
+}
+
+function classifyEventType(text: string, flags: { scoringPlay?: boolean; yellowCard?: boolean; redCard?: boolean; penaltyKick?: boolean; ownGoal?: boolean; shootout?: boolean }): import('./types').MatchEventType {
+  const lower = text.toLowerCase();
+  if (flags.redCard) return 'red_card';
+  if (flags.yellowCard) return 'yellow_card';
+  if (lower.includes('substitution') || lower.includes('sub on') || lower.includes('sub off')) return 'substitution';
+  if (lower.includes('var')) return 'var';
+  if (lower.includes('penalty missed') || lower.includes('pen missed') || lower.includes('pk miss')) return 'penalty_missed';
+  if (flags.ownGoal) return 'own_goal';
+  if (flags.penaltyKick || lower.includes('penalty') && lower.includes('goal')) return 'penalty_goal';
+  if (flags.scoringPlay || lower.includes('goal')) return 'goal';
+  return 'other';
+}
+
+function extractEvents(competition: ESPNCompetition, competitors: ESPNCompetitor[]): import('./types').MatchEvent[] {
+  const details = competition.details ?? [];
+  const teamAbbrById = new Map<string, { abbr: string; id: string }>();
+  for (const c of competitors) {
+    const id = c.team?.id ? String(c.team.id) : '';
+    const abbr = c.team?.abbreviation ?? '';
+    if (id && abbr) teamAbbrById.set(id, { abbr, id });
+  }
+
+  return details
+    .map((d, idx): import('./types').MatchEvent | null => {
+      const text = d.type?.text ?? '';
+      const type = classifyEventType(text, {
+        scoringPlay: d.scoringPlay,
+        yellowCard: d.yellowCard,
+        redCard: d.redCard,
+        penaltyKick: d.penaltyKick,
+        ownGoal: d.ownGoal,
+        shootout: d.shootout,
+      });
+      if (type === 'other') return null;
+      const teamId = d.team?.id ? String(d.team.id) : '';
+      const teamInfo = teamAbbrById.get(teamId);
+      const minuteRaw = d.clock?.value ?? 0;
+      const minute = Math.floor(minuteRaw / 60);
+      const athletes: import('./types').MatchEventAthlete[] = (d.athletesInvolved ?? []).map((a) => ({
+        id: a.id ?? '',
+        name: a.displayName ?? a.fullName ?? a.shortName ?? '',
+        shortName: a.shortName ?? a.displayName ?? '',
+        jersey: a.jersey,
+        position: a.position,
+        headshot: a.headshot,
+      }));
+      const scoreAfter = competitors
+        .map((c) => {
+          const abbr = c.team?.abbreviation ?? '';
+          const s = asNumber(c.score);
+          return `${abbr} ${s}`;
+        })
+        .filter(Boolean)
+        .join(' · ');
+      return {
+        id: `${d.id ?? idx}-${type}-${minute}`,
+        type,
+        rawType: text,
+        minute,
+        displayMinute: d.clock?.displayValue ?? `${minute}'`,
+        teamAbbr: teamInfo?.abbr ?? d.team?.abbreviation ?? '',
+        teamId,
+        scoreAfter,
+        athletes,
+        detail: text,
+      };
+    })
+    .filter((e): e is import('./types').MatchEvent => e !== null)
+    .sort((a, b) => a.minute - b.minute);
 }
 
 function inferRound(competition: ESPNCompetition, event: ESPNEvent): Match['phase'] {
@@ -154,6 +247,7 @@ export function mapESPNEvent(event: ESPNEvent, timeZone = 'Europe/Madrid'): Matc
 
   const homeScore = extractScore(homeComp);
   const awayScore = extractScore(awayComp);
+  const events = extractEvents(competition, competitors);
 
   const home: MatchCompetitor = {
     team: homeTeam,
@@ -203,6 +297,7 @@ export function mapESPNEvent(event: ESPNEvent, timeZone = 'Europe/Madrid'): Matc
           ? 'home'
           : 'away'
         : undefined,
+    events,
   };
 }
 
@@ -306,6 +401,7 @@ export function mapKnockoutMatches(matches: Match[]): import('./types').Bracket 
       home: { team: m.home.team, score: m.score?.home ?? null },
       away: { team: m.away.team, score: m.score?.away ?? null },
       startTimeUtc: m.startTimeUtc,
+      winner: m.winner,
     }));
 
   return {
@@ -320,4 +416,103 @@ export function mapKnockoutMatches(matches: Match[]): import('./types').Bracket 
 
 export function emptyTeam(): Team {
   return buildTeamFromAbbr('TBD', 'tbd', 'Por definir');
+}
+
+export interface ESPNStatsAthlete {
+  id: string;
+  displayName: string;
+  shortName: string;
+  headshot?: { href?: string };
+  jersey?: string;
+  team?: {
+    id?: string;
+    name?: string;
+    abbreviation?: string;
+    displayName?: string;
+    color?: string;
+    logos?: Array<{ href?: string }>;
+  };
+  statistics?: Array<{ name?: string; value?: number; displayValue?: string }>;
+}
+
+export interface ESPNStatsCategory {
+  name: string;
+  displayName?: string;
+  shortDisplayName?: string;
+  abbreviation?: string;
+  leaders?: Array<{
+    displayValue?: string;
+    value?: number;
+    athlete?: ESPNStatsAthlete;
+  }>;
+}
+
+export interface ESPNStatsPayload {
+  stats?: ESPNStatsCategory[];
+}
+
+export function mapESPNTopScorers(payload: ESPNStatsPayload): import('./types').TopScorer[] {
+  const goals = payload.stats?.find((c) => c.name === 'goalsLeaders');
+  const assists = payload.stats?.find((c) => c.name === 'assistsLeaders');
+  if (!goals?.leaders) return [];
+
+  const scorers: import('./types').TopScorer[] = [];
+  goals.leaders.forEach((entry, idx) => {
+    const ath = entry.athlete;
+    if (!ath) return;
+    const getStat = (name: string): number => {
+      const s = ath.statistics?.find((s) => s.name === name);
+      return asNumber(s?.value ?? s?.displayValue ?? 0);
+    };
+    const teamAbbr = ath.team?.abbreviation ?? 'TBD';
+    const team = buildTeamFromAbbr(
+      teamAbbr,
+      String(ath.team?.id ?? teamAbbr),
+      ath.team?.displayName ?? ath.team?.name,
+    );
+    if (ath.team?.color) team.color = `#${ath.team.color}`;
+    const goalsCount = asNumber(entry.value ?? getStat('totalGoals'));
+    const appearances = getStat('appearances');
+    const assistsCount = assists?.leaders?.find((l) => l.athlete?.id === ath.id)
+      ? asNumber(assists.leaders.find((l) => l.athlete?.id === ath.id)!.value ?? 0)
+      : 0;
+    scorers.push({
+      rank: idx + 1,
+      athlete: {
+        id: ath.id,
+        name: ath.displayName,
+        shortName: ath.shortName,
+        headshot: ath.headshot?.href,
+      },
+      team,
+      goals: goalsCount,
+      assists: assistsCount,
+      matches: appearances,
+      penalties: 0,
+    });
+  });
+
+  // Enrich with penalty count from scoreboard events
+  const playerPenalties = new Map<string, number>();
+  const eventCategories = (payload as unknown as { _eventPenalties?: Map<string, number> })._eventPenalties;
+  if (eventCategories) {
+    for (const [k, v] of eventCategories.entries()) playerPenalties.set(k, v);
+  }
+  for (const s of scorers) {
+    s.penalties = playerPenalties.get(s.athlete.id) ?? 0;
+  }
+
+  return scorers;
+}
+
+export function aggregatePenaltyScorers(events: import('./types').MatchEvent[]): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const ev of events) {
+    if (ev.type !== 'penalty_goal') continue;
+    for (const ath of ev.athletes) {
+      if (!ath.id) continue;
+      map.set(ath.id, (map.get(ath.id) ?? 0) + 1);
+    }
+  }
+  return map;
 }
