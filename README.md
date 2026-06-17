@@ -1,6 +1,6 @@
 # Mundial 2026 · Dashboard
 
-Web app en el NUC para seguir el Mundial de Fútbol 2026 (EE.UU. · Canadá · México).
+Web para seguir el Mundial de Fútbol 2026 (EE.UU. · Canadá · México).
 
 ## Stack
 
@@ -45,14 +45,6 @@ pnpm preview   # sirve dist/ en localhost:4173
 ./deploy/deploy.sh
 ```
 
-## Deploy
-
-1. Build local → `dist/`
-2. rsync `dist/` → `nuc:/home/luisma/mundial-2026/site/`
-3. nginx sirve desde `/var/www/mundial-2026` (volumen montado en el container)
-4. DNS: `mundial.nuc → 192.168.0.40` (AdGuard rewrite)
-5. SSL: mkcert cert en `/opt/nginx/ssl/mundial.nuc.pem`
-
 ## Datos
 
-ESPN API se consulta directo desde el navegador. CORS habilitado. Si en el futuro hay rate limit, se puede pasar por n8n (`https://n8n.nuc/webhook/world-cup/...`).
+ESPN API se consulta directo desde el navegador. CORS habilitado.
