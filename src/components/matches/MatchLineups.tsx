@@ -224,25 +224,19 @@ function PlayerMarker({ player, teamColor }: PlayerMarkerProps) {
         )}
         {player.stats.goals > 0 && (
           <div
-            className="absolute -top-2 -right-2 flex items-center"
+            className="absolute -top-1.5 -right-1 flex items-center text-base leading-none drop-shadow-md"
             title={`${player.stats.goals} gol${player.stats.goals > 1 ? 'es' : ''}`}
           >
             {Array.from({ length: Math.min(player.stats.goals, 3) }).map((_, i) => (
               <span
                 key={i}
-                className="inline-flex items-center justify-center w-5 h-5 rounded-full ring-2 ring-night-900 shadow text-[12px] leading-none"
                 style={{
-                  background: 'radial-gradient(circle at 35% 35%, #fff 0%, #f5f5f5 40%, #1a1a1a 80%)',
-                  marginLeft: i === 0 ? 0 : '-8px',
+                  marginLeft: i === 0 ? 0 : '-6px',
                   zIndex: 10 - i,
+                  filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.6))',
                 }}
               >
-                <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="#1a1a1a" strokeWidth="1.5">
-                  <polygon points="12,3 21,9 18,21 6,21 3,9" fill="none" />
-                  <line x1="12" y1="3" x2="12" y2="21" />
-                  <line x1="3" y1="9" x2="18" y2="21" />
-                  <line x1="21" y1="9" x2="6" y2="21" />
-                </svg>
+                ⚽
               </span>
             ))}
             {player.stats.goals > 3 && (
